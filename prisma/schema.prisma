@@ -1,0 +1,123 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  STAFF
+}
+
+enum UnitStatus {
+  DUE
+  DONE
+}
+
+model User {
+  id             String          @id @default(cuid())
+  email          String          @unique
+  passwordHash   String
+  name           String
+  role           Role            @default(STAFF)
+  createdAt      DateTime        @default(now())
+  uploadLogs     UploadLog[]
+  pendingUploads PendingUpload[]
+}
+
+// Holds a just-uploaded workbook's raw bytes between the wizard's steps (mapping confirmation,
+// preview, commit), since those are separate requests and the file itself is too large/awkward
+// to round-trip through hidden form fields. Deleted once the upload is committed.
+model PendingUpload {
+  id           String   @id @default(cuid())
+  fileName     String
+  fileData     Bytes
+  uploadedById String
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id])
+  createdAt    DateTime @default(now())
+}
+
+model AppSettings {
+  id                         Int @id @default(1)
+  defaultServiceIntervalDays Int @default(90)
+  renewalAlertLeadDays       Int @default(30)
+}
+
+model Project {
+  id                          String      @id @default(cuid())
+  name                        String
+  normalizedName              String      @unique
+  columnMapping               Json?
+  headerHash                  String?
+  serviceIntervalDaysOverride Int?
+  createdAt                   DateTime    @default(now())
+  updatedAt                   DateTime    @updatedAt
+  units                       Unit[]
+  uploadLogs                  UploadLog[]
+}
+
+model Unit {
+  id                   String         @id @default(cuid())
+  projectId            String
+  project              Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sourceRowNumber      Int
+  srNoRaw              String?
+  block                String?
+  siteName             String?
+  contactInfo          String?
+  hp                   Float?
+  through              String?
+  type                 String?
+  amcPeriodText        String?
+  amcPeriodStart       DateTime?
+  amcPeriodEnd         DateTime?
+  newAmcPeriodText     String?
+  newAmcPeriodStart    DateTime?
+  newAmcPeriodEnd      DateTime?
+  billNo               String?
+  remarks              String?
+  status               UnitStatus     @default(DUE)
+  statusManualOverride Boolean        @default(false)
+  lastServiceDate      DateTime?
+  nextServiceDueDate   DateTime?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  visits               ServiceVisit[]
+
+  @@index([projectId])
+  @@index([nextServiceDueDate])
+  @@index([amcPeriodEnd])
+  @@index([newAmcPeriodEnd])
+}
+
+model ServiceVisit {
+  id        String    @id @default(cuid())
+  unitId    String
+  unit      Unit      @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  sequence  Int
+  visitDate DateTime?
+  rawText   String?
+  createdAt DateTime  @default(now())
+
+  @@index([unitId])
+}
+
+model UploadLog {
+  id           String   @id @default(cuid())
+  projectId    String
+  project      Project  @relation(fields: [projectId], references: [id])
+  fileName     String
+  uploadedById String
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id])
+  uploadedAt   DateTime @default(now())
+  rowCount     Int
+  warnings     Json?
+
+  @@index([projectId])
+}
