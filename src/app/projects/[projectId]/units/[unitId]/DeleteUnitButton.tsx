@@ -25,7 +25,7 @@ export default function DeleteUnitButton({ unitId }: { unitId: string }) {
     return (
       <button
         onClick={() => setConfirming(true)}
-        className="rounded-md border border-red-300 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
+        className="danger"
       >
         Delete flat
       </button>
@@ -33,22 +33,22 @@ export default function DeleteUnitButton({ unitId }: { unitId: string }) {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="text-sm text-red-700">Delete this flat and its service history?</span>
+    <div className="page-actions">
+      <span className="error-text">Delete this flat and its service history?</span>
       <button
         onClick={handleDelete}
         disabled={pending}
-        className="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+        className="danger-solid"
       >
         {pending ? "Deleting..." : "Yes, delete"}
       </button>
       <button
         onClick={() => setConfirming(false)}
-        className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+       
       >
         Keep
       </button>
-      {error && <span className="text-sm text-red-600">{error}</span>}
+      {error && <span className="error-text">{error}</span>}
     </div>
   );
 }

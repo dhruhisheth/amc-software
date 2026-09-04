@@ -32,7 +32,7 @@ export default function AddUnitPanel({ projectId }: { projectId: string }) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+        className="primary"
       >
         Add flat
       </button>
@@ -40,16 +40,16 @@ export default function AddUnitPanel({ projectId }: { projectId: string }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-4 w-full rounded-lg border border-slate-200 bg-white p-5">
-      <h2 className="font-semibold text-slate-900">Add a flat</h2>
-      <div className="mt-4">
+    <form onSubmit={handleSubmit} className="card">
+      <h2>Add a flat</h2>
+      <div>
         <UnitFields value={form} onChange={setForm} />
       </div>
-      <div className="mt-4 flex items-center gap-3">
+      <div className="form-actions">
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+          className="primary"
         >
           {pending ? "Adding..." : "Add flat"}
         </button>
@@ -59,11 +59,11 @@ export default function AddUnitPanel({ projectId }: { projectId: string }) {
             setOpen(false);
             setError(null);
           }}
-          className="rounded-md border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+         
         >
           Cancel
         </button>
-        {error && <span className="text-sm text-red-600">{error}</span>}
+        {error && <span className="error-text">{error}</span>}
       </div>
     </form>
   );

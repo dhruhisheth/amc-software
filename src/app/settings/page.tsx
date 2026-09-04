@@ -21,10 +21,10 @@ export default async function SettingsPage() {
   ]);
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 py-8 space-y-8">
+    <div className="app-content narrow">
       <div>
-        <h1 className="text-xl font-semibold text-slate-900">Settings</h1>
-        <p className="mt-1 text-sm text-slate-500">Service intervals, renewal alerts, and team accounts.</p>
+        <h1>Settings</h1>
+        <p className="muted">Service intervals, renewal alerts, and team accounts.</p>
       </div>
 
       <IntervalSettingsForm
@@ -43,14 +43,14 @@ export default async function SettingsPage() {
         }}
       />
 
-      <div className="rounded-lg border border-slate-200 bg-white p-5">
-        <h2 className="font-semibold text-slate-900">Per-project interval overrides</h2>
-        <p className="mt-1 text-sm text-slate-500">
+      <div className="card">
+        <h2>Per-project interval overrides</h2>
+        <p className="muted">
           Leave blank to use the default ({appSettings.defaultServiceIntervalDays} days).
         </p>
-        <table className="mt-3 w-full text-left text-sm">
+        <table>
           <thead>
-            <tr className="text-slate-500">
+            <tr className="muted">
               <th className="pb-2">Project</th>
               <th className="pb-2">Interval (days)</th>
               <th className="pb-2"></th>
@@ -64,19 +64,19 @@ export default async function SettingsPage() {
         </table>
       </div>
 
-      <div className="rounded-lg border border-slate-200 bg-white p-5">
-        <h2 className="font-semibold text-slate-900">Team accounts</h2>
-        <dl className="mt-2 space-y-1 text-xs text-slate-500">
+      <div className="card">
+        <h2>Team accounts</h2>
+        <dl className="role-legend">
           {ROLES.map((role) => (
-            <div key={role} className="flex gap-2">
-              <dt className="w-24 shrink-0 font-medium text-slate-700">{ROLE_LABELS[role]}</dt>
+            <div key={role} className="form-actions">
+              <dt className="field-label role-name">{ROLE_LABELS[role]}</dt>
               <dd>{ROLE_DESCRIPTIONS[role]}</dd>
             </div>
           ))}
         </dl>
-        <table className="mt-4 w-full text-left text-sm">
+        <table>
           <thead>
-            <tr className="text-slate-500">
+            <tr className="muted">
               <th className="pb-2">Name</th>
               <th className="pb-2">Email</th>
               <th className="pb-2">Role</th>
@@ -88,13 +88,13 @@ export default async function SettingsPage() {
               const isOwner = isRootAdminEmail(u.email);
               const isSelf = u.id === session.user.id;
               return (
-                <tr key={u.id} className="border-t border-slate-100">
-                  <td className="py-2 pr-4">{u.name}</td>
-                  <td className="py-2 pr-4 text-slate-500">{u.email}</td>
-                  <td className="py-2 pr-4">
+                <tr key={u.id}>
+                  <td>{u.name}</td>
+                  <td className="muted">{u.email}</td>
+                  <td>
                     <UserRoleToggle userId={u.id} role={u.role} isSelf={isSelf} isOwner={isOwner} />
                   </td>
-                  <td className="py-2 text-right">
+                  <td className="numeric">
                     <DeleteUserButton userId={u.id} name={u.name} isSelf={isSelf} isOwner={isOwner} />
                   </td>
                 </tr>

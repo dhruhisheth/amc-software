@@ -37,16 +37,16 @@ export default async function ComplaintPage({
       : options.technicians;
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 py-8">
-      <Link href="/complaints" className="text-sm text-slate-500 underline hover:text-slate-900">
+    <div className="app-content narrow">
+      <Link href="/complaints" className="back-link">
         ← All complaints
       </Link>
 
-      <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
+      <div className="page-header">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">{complaint.ticketNo}</h1>
-          <p className="mt-1 text-sm text-slate-500">{complaint.subject}</p>
-          <div className="mt-2 flex items-center gap-2">
+          <h1>{complaint.ticketNo}</h1>
+          <p className="muted">{complaint.subject}</p>
+          <div className="page-actions">
             <ComplaintStatusBadge status={complaint.status} />
             <PriorityBadge priority={complaint.priority} />
           </div>
@@ -54,26 +54,26 @@ export default async function ComplaintPage({
         {deletable && <DeleteComplaintButton complaintId={complaint.id} />}
       </div>
 
-      <dl className="mt-6 grid grid-cols-2 gap-4 rounded-lg border border-slate-200 bg-white p-4 text-sm sm:grid-cols-4">
+      <dl className="card form-grid cols-4">
         <div>
-          <dt className="text-xs uppercase tracking-wide text-slate-400">Reported</dt>
-          <dd className="mt-0.5 text-slate-700">{formatCalendarDate(complaint.reportedAt) ?? "—"}</dd>
+          <dt className="section-label">Reported</dt>
+          <dd>{formatCalendarDate(complaint.reportedAt) ?? "—"}</dd>
         </div>
         <div>
-          <dt className="text-xs uppercase tracking-wide text-slate-400">Attended</dt>
-          <dd className="mt-0.5 text-slate-700">{formatCalendarDate(complaint.attendedAt) ?? "—"}</dd>
+          <dt className="section-label">Attended</dt>
+          <dd>{formatCalendarDate(complaint.attendedAt) ?? "—"}</dd>
         </div>
         <div>
-          <dt className="text-xs uppercase tracking-wide text-slate-400">Resolved</dt>
-          <dd className="mt-0.5 text-slate-700">{formatCalendarDate(complaint.resolvedAt) ?? "—"}</dd>
+          <dt className="section-label">Resolved</dt>
+          <dd>{formatCalendarDate(complaint.resolvedAt) ?? "—"}</dd>
         </div>
         <div>
-          <dt className="text-xs uppercase tracking-wide text-slate-400">Flat</dt>
-          <dd className="mt-0.5 text-slate-700">
+          <dt className="section-label">Flat</dt>
+          <dd>
             {complaint.unit ? (
               <Link
                 href={`/projects/${complaint.unit.projectId}/units/${complaint.unit.id}`}
-                className="underline hover:text-slate-900"
+               
               >
                 {unitLabel(complaint.unit)}
               </Link>
@@ -84,7 +84,7 @@ export default async function ComplaintPage({
         </div>
       </dl>
 
-      <div className="mt-6">
+      <div>
         <ComplaintForm
           mode="edit"
           complaintId={complaint.id}

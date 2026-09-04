@@ -113,203 +113,182 @@ export default async function ProjectPage({
   const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const sortLink = (key: string, label: string) => (
-    <Link href={`?${buildQuery(sp, { sort: key, page: undefined })}`} className="hover:text-slate-900">
+    <Link href={`?${buildQuery(sp, { sort: key, page: undefined })}`}>
       {label}
-      {sortKey === key && " ↓"}
+      {sortKey === key && " \u2193"}
     </Link>
   );
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-8">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <Link href="/projects" className="text-sm text-slate-500 underline hover:text-slate-900">
-            ← All projects
-          </Link>
-          <h1 className="mt-2 text-xl font-semibold text-slate-900">{project.name}</h1>
-          {project.address && <p className="text-sm text-slate-500">{project.address}</p>}
-          <p className="mt-1 text-sm text-slate-500">
-            {rows.length} of {allUnits.length} flats shown
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            href={`/history?projectId=${project.id}`}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            Service history
-          </Link>
-          <Link
-            href={`/offers/new?projectId=${project.id}`}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            Generate AMC offer
-          </Link>
-          {editable && (
-            <EditProjectPanel
-              projectId={project.id}
-              initial={{
-                name: project.name,
-                address: project.address ?? "",
-                serviceIntervalDaysOverride:
-                  project.serviceIntervalDaysOverride !== null ? String(project.serviceIntervalDaysOverride) : "",
-              }}
-              canDeleteProject={deletable}
-            />
-          )}
-          {editable && <AddUnitPanel projectId={project.id} />}
-        </div>
-      </div>
-
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <form method="GET" className="flex items-center gap-2">
-          {statusFilter && <input type="hidden" name="status" value={statusFilter} />}
-          {overdueOnly && <input type="hidden" name="overdue" value="1" />}
-          {renewalOnly && <input type="hidden" name="renewal" value="1" />}
-          {sortKey !== "flat" && <input type="hidden" name="sort" value={sortKey} />}
-          <input
-            type="text"
-            name="q"
-            defaultValue={search}
-            placeholder="Search block, flat, address, site..."
-            className="w-64 rounded-md border border-slate-300 px-3 py-1.5 text-sm"
-          />
-          <button type="submit" className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50">
-            Search
-          </button>
-        </form>
-
-        <div className="flex items-center gap-2 text-sm">
-          <FilterLink sp={sp} overrides={{ status: undefined, page: undefined }} active={!statusFilter}>
-            All
-          </FilterLink>
-          <FilterLink sp={sp} overrides={{ status: "DUE", page: undefined }} active={statusFilter === "DUE"}>
-            Due
-          </FilterLink>
-          <FilterLink sp={sp} overrides={{ status: "DONE", page: undefined }} active={statusFilter === "DONE"}>
-            Done
-          </FilterLink>
-        </div>
-
-        <FilterLink sp={sp} overrides={{ overdue: overdueOnly ? undefined : "1", page: undefined }} active={overdueOnly}>
-          Service overdue only
-        </FilterLink>
-        <FilterLink sp={sp} overrides={{ renewal: renewalOnly ? undefined : "1", page: undefined }} active={renewalOnly}>
-          Renewals due only
-        </FilterLink>
-      </div>
-
-      <div className="mt-4 overflow-x-auto rounded-lg border border-slate-200 bg-white">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left text-slate-500">
-              <th className="px-3 pt-2" rowSpan={2}>
-                {sortLink("flat", "Block / Flat")}
-              </th>
-              <th className="px-3 pt-2" rowSpan={2}>
-                Address
-              </th>
-              <th className="px-3 pt-2" rowSpan={2}>
-                {sortLink("siteName", "Site")}
-              </th>
-              <th className="px-3 pt-2 text-center" colSpan={PROJECT_TABLE_SERVICE_SLOTS}>
-                {sortLink("lastService", "Service dates")}
-              </th>
-              <th className="px-3 pt-2" rowSpan={2}>
-                {sortLink("nextDue", "Service due")}
-              </th>
-              <th className="px-3 pt-2" rowSpan={2}>
-                {sortLink("renewalDue", "Renewal due")}
-              </th>
-              <th className="px-3 pt-2" rowSpan={2}>
-                Status
-              </th>
-              <th className="px-3 pt-2" rowSpan={2}></th>
-            </tr>
-            <tr className="border-b border-slate-200 text-left text-xs font-normal text-slate-400">
-              {Array.from({ length: PROJECT_TABLE_SERVICE_SLOTS }, (_, i) => (
-                <th key={i} className="px-3 pb-2 font-normal">
-                  {i + 1}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {pageRows.map(({ unit, bucket, renewalBucket, renewalDue, slots }) => (
-              <tr key={unit.id} className="border-b border-slate-100 last:border-0 align-top">
-                <td className="px-3 py-2 font-medium text-slate-900">
-                  {unit.block ?? "—"}
-                  {unit.flatNo && <span className="text-slate-500"> / {unit.flatNo}</span>}
-                </td>
-                <td className="px-3 py-2 text-slate-500">{unit.address ?? "—"}</td>
-                <td className="px-3 py-2 text-slate-700">{unit.siteName ?? "—"}</td>
-                {slots.map((slot, i) => (
-                  <td
-                    key={i}
-                    className={`px-3 py-2 text-xs ${
-                      slot?.status === "PENDING" ? "text-amber-600" : "text-slate-600"
-                    }`}
-                    title={slot?.status === "PENDING" ? "Scheduled, not yet done" : undefined}
-                  >
-                    {slot ? (formatCalendarDate(slot.date) ?? slot.rawText ?? "—") : "—"}
-                  </td>
-                ))}
-                <td className="px-3 py-2">
-                  <ServiceBadge bucket={bucket} />
-                  {unit.nextServiceDueDate && (
-                    <div className="mt-0.5 text-xs text-slate-400">
-                      {formatCalendarDate(unit.nextServiceDueDate)}
-                    </div>
-                  )}
-                </td>
-                <td className="px-3 py-2">
-                  <RenewalBadge bucket={renewalBucket} />
-                  {renewalDue && <div className="mt-0.5 text-xs text-slate-400">{formatCalendarDate(renewalDue)}</div>}
-                </td>
-                <td className="px-3 py-2">
-                  <UnitStatusBadge status={unit.status} manualOverride={unit.statusManualOverride} />
-                </td>
-                <td className="px-3 py-2 text-right">
-                  <Link
-                    href={`/projects/${projectId}/units/${unit.id}`}
-                    className="text-slate-500 underline hover:text-slate-900"
-                  >
-                    {editable ? "Edit" : "View"}
-                  </Link>
-                </td>
-              </tr>
-            ))}
-            {pageRows.length === 0 && (
-              <tr>
-                <td colSpan={7 + PROJECT_TABLE_SERVICE_SLOTS} className="px-4 py-6 text-center text-slate-400">
-                  No flats match these filters.
-                </td>
-              </tr>
+    <main className="app-content">
+      <div className="page">
+        <div className="page-header">
+          <div>
+            <Link href="/projects" className="back-link">
+              &larr; All projects
+            </Link>
+            <h2>{project.name}</h2>
+            {project.address && <p>{project.address}</p>}
+            <p>
+              {rows.length} of {allUnits.length} flats shown
+            </p>
+          </div>
+          <div className="page-actions">
+            <Link className="button" href={`/history?projectId=${project.id}`}>
+              Service history
+            </Link>
+            <Link className="button" href={`/offers/new?projectId=${project.id}`}>
+              Generate AMC offer
+            </Link>
+            {editable && (
+              <EditProjectPanel
+                projectId={project.id}
+                initial={{
+                  name: project.name,
+                  address: project.address ?? "",
+                  serviceIntervalDaysOverride:
+                    project.serviceIntervalDaysOverride !== null
+                      ? String(project.serviceIntervalDaysOverride)
+                      : "",
+                }}
+                canDeleteProject={deletable}
+              />
             )}
-          </tbody>
-        </table>
-      </div>
-
-      {totalPages > 1 && (
-        <div className="mt-4 flex items-center justify-center gap-4 text-sm">
-          <Link
-            href={`?${buildQuery(sp, { page: String(Math.max(1, page - 1)) })}`}
-            className={`text-slate-500 hover:text-slate-900 ${page <= 1 ? "pointer-events-none opacity-30" : ""}`}
-          >
-            Previous
-          </Link>
-          <span className="text-slate-500">
-            Page {page} of {totalPages}
-          </span>
-          <Link
-            href={`?${buildQuery(sp, { page: String(Math.min(totalPages, page + 1)) })}`}
-            className={`text-slate-500 hover:text-slate-900 ${page >= totalPages ? "pointer-events-none opacity-30" : ""}`}
-          >
-            Next
-          </Link>
+            {editable && <AddUnitPanel projectId={project.id} />}
+          </div>
         </div>
-      )}
-    </div>
+
+        <div className="filters">
+          <form method="GET" className="filters">
+            {statusFilter && <input type="hidden" name="status" value={statusFilter} />}
+            {overdueOnly && <input type="hidden" name="overdue" value="1" />}
+            {renewalOnly && <input type="hidden" name="renewal" value="1" />}
+            {sortKey !== "flat" && <input type="hidden" name="sort" value={sortKey} />}
+            <input
+              type="text"
+              name="q"
+              defaultValue={search}
+              placeholder="Search block, flat, address, site..."
+            />
+            <button type="submit">Search</button>
+          </form>
+
+          <div className="filter-chips">
+            <FilterLink sp={sp} overrides={{ status: undefined, page: undefined }} active={!statusFilter}>
+              All
+            </FilterLink>
+            <FilterLink sp={sp} overrides={{ status: "DUE", page: undefined }} active={statusFilter === "DUE"}>
+              Due
+            </FilterLink>
+            <FilterLink sp={sp} overrides={{ status: "DONE", page: undefined }} active={statusFilter === "DONE"}>
+              Done
+            </FilterLink>
+            <FilterLink
+              sp={sp}
+              overrides={{ overdue: overdueOnly ? undefined : "1", page: undefined }}
+              active={overdueOnly}
+            >
+              Service overdue only
+            </FilterLink>
+            <FilterLink
+              sp={sp}
+              overrides={{ renewal: renewalOnly ? undefined : "1", page: undefined }}
+              active={renewalOnly}
+            >
+              Renewals due only
+            </FilterLink>
+          </div>
+        </div>
+
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th rowSpan={2}>{sortLink("flat", "Block / Flat")}</th>
+                <th rowSpan={2}>Address</th>
+                <th rowSpan={2}>{sortLink("siteName", "Site")}</th>
+                <th colSpan={PROJECT_TABLE_SERVICE_SLOTS}>{sortLink("lastService", "Service dates")}</th>
+                <th rowSpan={2}>{sortLink("nextDue", "Service due")}</th>
+                <th rowSpan={2}>{sortLink("renewalDue", "Renewal due")}</th>
+                <th rowSpan={2}>Status</th>
+                <th rowSpan={2}></th>
+              </tr>
+              <tr className="head-sub">
+                {Array.from({ length: PROJECT_TABLE_SERVICE_SLOTS }, (_, i) => (
+                  <th key={i}>{i + 1}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {pageRows.map(({ unit, bucket, renewalBucket, renewalDue, slots }) => (
+                <tr key={unit.id}>
+                  <td className="cell-strong">
+                    {unit.block ?? "\u2014"}
+                    {unit.flatNo && <span className="muted"> / {unit.flatNo}</span>}
+                  </td>
+                  <td className="muted">{unit.address ?? "\u2014"}</td>
+                  <td>{unit.siteName ?? "\u2014"}</td>
+                  {slots.map((slot, i) => (
+                    <td
+                      key={i}
+                      className={slot?.status === "PENDING" ? "cell-sub cell-pending" : "cell-sub"}
+                      title={slot?.status === "PENDING" ? "Scheduled, not yet done" : undefined}
+                    >
+                      {slot ? (formatCalendarDate(slot.date) ?? slot.rawText ?? "\u2014") : "\u2014"}
+                    </td>
+                  ))}
+                  <td>
+                    <ServiceBadge bucket={bucket} />
+                    {unit.nextServiceDueDate && (
+                      <div className="cell-sub">{formatCalendarDate(unit.nextServiceDueDate)}</div>
+                    )}
+                  </td>
+                  <td>
+                    <RenewalBadge bucket={renewalBucket} />
+                    {renewalDue && <div className="cell-sub">{formatCalendarDate(renewalDue)}</div>}
+                  </td>
+                  <td>
+                    <UnitStatusBadge status={unit.status} manualOverride={unit.statusManualOverride} />
+                  </td>
+                  <td className="numeric">
+                    <Link href={`/projects/${projectId}/units/${unit.id}`}>
+                      {editable ? "Edit" : "View"}
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+              {pageRows.length === 0 && (
+                <tr>
+                  <td colSpan={7 + PROJECT_TABLE_SERVICE_SLOTS} className="empty-state">
+                    No flats match these filters.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {totalPages > 1 && (
+          <div className="pagination">
+            <Link
+              href={`?${buildQuery(sp, { page: String(Math.max(1, page - 1)) })}`}
+              className={page <= 1 ? "disabled" : undefined}
+            >
+              Previous
+            </Link>
+            <span>
+              Page {page} of {totalPages}
+            </span>
+            <Link
+              href={`?${buildQuery(sp, { page: String(Math.min(totalPages, page + 1)) })}`}
+              className={page >= totalPages ? "disabled" : undefined}
+            >
+              Next
+            </Link>
+          </div>
+        )}
+      </div>
+    </main>
   );
 }
 
@@ -325,12 +304,7 @@ function FilterLink({
   children: React.ReactNode;
 }) {
   return (
-    <Link
-      href={`?${buildQuery(sp, overrides)}`}
-      className={`rounded-md border px-3 py-1.5 text-sm ${
-        active ? "border-slate-900 bg-slate-900 text-white" : "border-slate-300 text-slate-700 hover:bg-slate-50"
-      }`}
-    >
+    <Link href={`?${buildQuery(sp, overrides)}`} className={active ? "chip active" : "chip"}>
       {children}
     </Link>
   );

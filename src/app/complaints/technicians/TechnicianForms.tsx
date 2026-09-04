@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Field, inputClass, primaryButtonClass, secondaryButtonClass } from "@/components/form";
+import { Field } from "@/components/form";
 import { createTechnician, deleteTechnician, updateTechnician, type TechnicianInput } from "../actions";
 
 const EMPTY: TechnicianInput = { name: "", phone: "", skills: "", active: true };
@@ -15,13 +15,13 @@ function TechnicianFields({
   onChange: (next: TechnicianInput) => void;
 }) {
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+    <div className="form-grid cols-4">
       <Field label="Name">
         <input
           required
           value={value.name}
           onChange={(e) => onChange({ ...value, name: e.target.value })}
-          className={inputClass}
+         
           placeholder="Technician's name"
         />
       </Field>
@@ -29,14 +29,14 @@ function TechnicianFields({
         <input
           value={value.phone}
           onChange={(e) => onChange({ ...value, phone: e.target.value })}
-          className={inputClass}
+         
         />
       </Field>
       <Field label="Skills / notes">
         <input
           value={value.skills}
           onChange={(e) => onChange({ ...value, skills: e.target.value })}
-          className={inputClass}
+         
           placeholder="e.g. VRF, chillers"
         />
       </Field>
@@ -44,7 +44,7 @@ function TechnicianFields({
         <select
           value={value.active ? "yes" : "no"}
           onChange={(e) => onChange({ ...value, active: e.target.value === "yes" })}
-          className={inputClass}
+         
         >
           <option value="yes">Active</option>
           <option value="no">Inactive</option>
@@ -75,16 +75,16 @@ export function AddTechnicianForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-lg border border-slate-200 bg-white p-5">
-      <h2 className="font-semibold text-slate-900">Add a technician</h2>
-      <div className="mt-3">
+    <form onSubmit={handleSubmit} className="card">
+      <h2>Add a technician</h2>
+      <div>
         <TechnicianFields value={form} onChange={setForm} />
       </div>
-      <div className="mt-4 flex items-center gap-3">
-        <button type="submit" disabled={pending} className={primaryButtonClass}>
+      <div className="form-actions">
+        <button type="submit" disabled={pending} className="primary">
           {pending ? "Adding..." : "Add technician"}
         </button>
-        {error && <span className="text-sm text-red-600">{error}</span>}
+        {error && <span className="error-text">{error}</span>}
       </div>
     </form>
   );
@@ -138,11 +138,11 @@ export function TechnicianRow({
 
   if (editing) {
     return (
-      <tr className="border-t border-slate-100">
-        <td colSpan={5} className="px-3 py-3">
+      <tr>
+        <td colSpan={5}>
           <TechnicianFields value={form} onChange={setForm} />
-          <div className="mt-3 flex items-center gap-3">
-            <button onClick={handleSave} disabled={pending} className={primaryButtonClass}>
+          <div className="form-actions">
+            <button onClick={handleSave} disabled={pending} className="primary">
               {pending ? "Saving..." : "Save"}
             </button>
             <button
@@ -151,11 +151,11 @@ export function TechnicianRow({
                 setEditing(false);
                 setError(null);
               }}
-              className={secondaryButtonClass}
+             
             >
               Cancel
             </button>
-            {error && <span className="text-sm text-red-600">{error}</span>}
+            {error && <span className="error-text">{error}</span>}
           </div>
         </td>
       </tr>
@@ -163,29 +163,29 @@ export function TechnicianRow({
   }
 
   return (
-    <tr className="border-t border-slate-100 align-top">
-      <td className="px-3 py-2 font-medium text-slate-900">
+    <tr>
+      <td className="cell-strong">
         {initial.name}
-        {!initial.active && <span className="ml-2 text-xs text-slate-400">(inactive)</span>}
+        {!initial.active && <span className="cell-sub">(inactive)</span>}
       </td>
-      <td className="px-3 py-2 text-slate-500">{initial.phone || "—"}</td>
-      <td className="px-3 py-2 text-slate-500">{initial.skills || "—"}</td>
-      <td className="px-3 py-2 text-slate-500">
+      <td className="muted">{initial.phone || "—"}</td>
+      <td className="muted">{initial.skills || "—"}</td>
+      <td className="muted">
         {complaintCount} complaints · {visitCount} services
       </td>
-      <td className="px-3 py-2 text-right">
-        <div className="flex flex-wrap items-center justify-end gap-3">
+      <td className="numeric">
+        <div className="form-actions">
           {editable && (
-            <button onClick={() => setEditing(true)} className="text-sm text-slate-500 underline hover:text-slate-900">
+            <button onClick={() => setEditing(true)} className="back-link">
               Edit
             </button>
           )}
           {deletable && complaintCount === 0 && visitCount === 0 && (
-            <button onClick={handleDelete} disabled={pending} className="text-sm text-red-600 hover:underline">
+            <button onClick={handleDelete} disabled={pending} className="link-button danger-text">
               {pending ? "Removing..." : "Remove"}
             </button>
           )}
-          {error && <span className="text-xs text-red-600">{error}</span>}
+          {error && <span className="error-text">{error}</span>}
         </div>
       </td>
     </tr>

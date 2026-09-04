@@ -8,37 +8,43 @@ import type {
 import type { RenewalBucket, ServiceBucket } from "@/lib/status";
 import { RENEWAL_BUCKET_LABELS, SERVICE_BUCKET_LABELS } from "@/lib/status";
 
-type Tone = "neutral" | "danger" | "warning" | "success" | "info";
-
-const TONE_CLASSES: Record<Tone, string> = {
-  neutral: "bg-slate-100 text-slate-600",
-  danger: "bg-red-100 text-red-700",
-  warning: "bg-amber-100 text-amber-700",
-  success: "bg-green-100 text-green-700",
-  info: "bg-blue-100 text-blue-700",
-};
+export type Tone = "neutral" | "danger" | "warning" | "success" | "info";
 
 export function Badge({ children, tone = "neutral" }: { children: React.ReactNode; tone?: Tone }) {
-  return (
-    <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${TONE_CLASSES[tone]}`}>
-      {children}
-    </span>
-  );
+  return <span className={tone === "neutral" ? "badge" : `badge ${tone}`}>{children}</span>;
 }
 
 export function ServiceBadge({ bucket }: { bucket: ServiceBucket }) {
   const tone: Tone =
-    bucket === "OVERDUE" ? "danger" : bucket === "DUE_SOON" ? "warning" : bucket === "OK" ? "success" : "neutral";
+    bucket === "OVERDUE"
+      ? "danger"
+      : bucket === "DUE_SOON"
+        ? "warning"
+        : bucket === "OK"
+          ? "success"
+          : "neutral";
   return <Badge tone={tone}>{SERVICE_BUCKET_LABELS[bucket]}</Badge>;
 }
 
 export function RenewalBadge({ bucket }: { bucket: RenewalBucket }) {
   const tone: Tone =
-    bucket === "EXPIRED" ? "danger" : bucket === "EXPIRING_SOON" ? "warning" : bucket === "OK" ? "success" : "neutral";
+    bucket === "EXPIRED"
+      ? "danger"
+      : bucket === "EXPIRING_SOON"
+        ? "warning"
+        : bucket === "OK"
+          ? "success"
+          : "neutral";
   return <Badge tone={tone}>{RENEWAL_BUCKET_LABELS[bucket]}</Badge>;
 }
 
-export function UnitStatusBadge({ status, manualOverride }: { status: UnitStatus; manualOverride?: boolean }) {
+export function UnitStatusBadge({
+  status,
+  manualOverride,
+}: {
+  status: UnitStatus;
+  manualOverride?: boolean;
+}) {
   return (
     <Badge tone={status === "DONE" ? "success" : "neutral"}>
       {status}
@@ -57,7 +63,11 @@ export const COMPLAINT_STATUS_LABELS: Record<ComplaintStatus, string> = {
 
 export function ComplaintStatusBadge({ status }: { status: ComplaintStatus }) {
   const tone: Tone =
-    status === "OPEN" ? "danger" : status === "ASSIGNED" || status === "IN_PROGRESS" ? "warning" : "success";
+    status === "OPEN"
+      ? "danger"
+      : status === "ASSIGNED" || status === "IN_PROGRESS"
+        ? "warning"
+        : "success";
   return <Badge tone={tone}>{COMPLAINT_STATUS_LABELS[status]}</Badge>;
 }
 
@@ -82,7 +92,13 @@ export const OFFER_STATUS_LABELS: Record<OfferStatus, string> = {
 
 export function OfferStatusBadge({ status }: { status: OfferStatus }) {
   const tone: Tone =
-    status === "ACCEPTED" ? "success" : status === "REJECTED" || status === "EXPIRED" ? "danger" : status === "SENT" ? "info" : "neutral";
+    status === "ACCEPTED"
+      ? "success"
+      : status === "REJECTED" || status === "EXPIRED"
+        ? "danger"
+        : status === "SENT"
+          ? "info"
+          : "neutral";
   return <Badge tone={tone}>{OFFER_STATUS_LABELS[status]}</Badge>;
 }
 

@@ -2,21 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Field } from "@/components/form";
 import { createProject, updateProject, deleteProject, type ProjectInput } from "./actions";
 
 const EMPTY: ProjectInput = { name: "", address: "", serviceIntervalDaysOverride: "" };
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block text-sm">
-      <span className="font-medium text-slate-700">{label}</span>
-      {children}
-    </label>
-  );
-}
-
-const inputClass =
-  "mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none";
 
 function ProjectFields({
   value,
@@ -26,13 +15,13 @@ function ProjectFields({
   onChange: (next: ProjectInput) => void;
 }) {
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <div className="form-grid cols-2">
       <Field label="Project name">
         <input
           required
           value={value.name}
           onChange={(e) => onChange({ ...value, name: e.target.value })}
-          className={inputClass}
+         
           placeholder="e.g. Shivalik Residency"
         />
       </Field>
@@ -41,16 +30,16 @@ function ProjectFields({
           type="number"
           value={value.serviceIntervalDaysOverride}
           onChange={(e) => onChange({ ...value, serviceIntervalDaysOverride: e.target.value })}
-          className={inputClass}
+         
           placeholder="(use default)"
         />
       </Field>
-      <div className="sm:col-span-2">
+      <div className="span-all">
         <Field label="Address">
           <input
             value={value.address}
             onChange={(e) => onChange({ ...value, address: e.target.value })}
-            className={inputClass}
+           
             placeholder="Site address"
           />
         </Field>
@@ -85,7 +74,7 @@ export function AddProjectPanel() {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+        className="primary"
       >
         Add project
       </button>
@@ -93,16 +82,16 @@ export function AddProjectPanel() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="w-full rounded-lg border border-slate-200 bg-white p-5">
-      <h2 className="font-semibold text-slate-900">New project</h2>
-      <div className="mt-3">
+    <form onSubmit={handleSubmit} className="card">
+      <h3>New project</h3>
+      <div>
         <ProjectFields value={form} onChange={setForm} />
       </div>
-      <div className="mt-4 flex items-center gap-3">
+      <div className="form-actions">
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+          className="primary"
         >
           {pending ? "Creating..." : "Create project"}
         </button>
@@ -112,11 +101,11 @@ export function AddProjectPanel() {
             setOpen(false);
             setError(null);
           }}
-          className="rounded-md border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+          
         >
           Cancel
         </button>
-        {error && <span className="text-sm text-red-600">{error}</span>}
+        {error && <span className="error-text">{error}</span>}
       </div>
     </form>
   );
@@ -171,7 +160,7 @@ export function EditProjectPanel({
     return (
       <button
         onClick={() => setOpen(true)}
-        className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+        
       >
         Edit project
       </button>
@@ -179,16 +168,16 @@ export function EditProjectPanel({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-4 rounded-lg border border-slate-200 bg-white p-5">
-      <h2 className="font-semibold text-slate-900">Edit project</h2>
-      <div className="mt-3">
+    <form onSubmit={handleSubmit} className="card">
+      <h3>Edit project</h3>
+      <div>
         <ProjectFields value={form} onChange={setForm} />
       </div>
-      <div className="mt-4 flex flex-wrap items-center gap-3">
+      <div className="form-actions">
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+          className="primary"
         >
           {pending ? "Saving..." : "Save changes"}
         </button>
@@ -200,7 +189,7 @@ export function EditProjectPanel({
             setError(null);
             setConfirmDelete(false);
           }}
-          className="rounded-md border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+          
         >
           Cancel
         </button>
@@ -208,32 +197,32 @@ export function EditProjectPanel({
           <button
             type="button"
             onClick={() => setConfirmDelete(true)}
-            className="ml-auto rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
+            className="danger spacer"
           >
             Delete project
           </button>
         )}
         {canDeleteProject && confirmDelete && (
-          <div className="ml-auto flex items-center gap-2">
-            <span className="text-sm text-red-700">Delete this project and all its flats?</span>
+          <div className="form-actions spacer">
+            <span className="error-text">Delete this project and all its flats?</span>
             <button
               type="button"
               onClick={handleDelete}
               disabled={deleting}
-              className="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+              className="danger-solid"
             >
               {deleting ? "Deleting..." : "Yes, delete"}
             </button>
             <button
               type="button"
               onClick={() => setConfirmDelete(false)}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+              
             >
               Keep
             </button>
           </div>
         )}
-        {error && <span className="w-full text-sm text-red-600">{error}</span>}
+        {error && <span className="error-text">{error}</span>}
       </div>
     </form>
   );

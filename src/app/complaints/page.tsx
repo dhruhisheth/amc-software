@@ -58,25 +58,25 @@ export default async function ComplaintsPage({
   const unassignedCount = rows.filter((c) => !c.technicianId && isOpenComplaint(c.status)).length;
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-8">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="app-content">
+      <div className="page-header">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">Complaints</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1>Complaints</h1>
+          <p className="muted">
             {rows.length} complaints · {openCount} still open · {unassignedCount} unassigned
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="page-actions">
           <Link
             href="/complaints/technicians"
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+           
           >
             Technicians
           </Link>
           {editable && (
             <Link
               href="/complaints/new"
-              className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+              className="primary"
             >
               Log complaint
             </Link>
@@ -84,23 +84,23 @@ export default async function ComplaintsPage({
         </div>
       </div>
 
-      <form method="GET" className="mt-4 flex flex-wrap items-end gap-3">
-        <label className="text-sm">
-          <span className="block font-medium text-slate-700">Search</span>
+      <form method="GET" className="filters">
+        <label className="field">
+          <span className="field-label">Search</span>
           <input
             type="text"
             name="q"
             defaultValue={search}
             placeholder="Ticket, subject, name..."
-            className="mt-1 w-56 rounded-md border border-slate-300 px-3 py-1.5 text-sm"
+           
           />
         </label>
-        <label className="text-sm">
-          <span className="block font-medium text-slate-700">Status</span>
+        <label className="field">
+          <span className="field-label">Status</span>
           <select
             name="status"
             defaultValue={statusFilter}
-            className="mt-1 rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+           
           >
             <option value="">All</option>
             {COMPLAINT_STATUSES.map((st) => (
@@ -110,12 +110,12 @@ export default async function ComplaintsPage({
             ))}
           </select>
         </label>
-        <label className="text-sm">
-          <span className="block font-medium text-slate-700">Technician</span>
+        <label className="field">
+          <span className="field-label">Technician</span>
           <select
             name="technician"
             defaultValue={technicianFilter}
-            className="mt-1 rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+           
           >
             <option value="">Anyone</option>
             <option value="unassigned">Unassigned</option>
@@ -128,45 +128,45 @@ export default async function ComplaintsPage({
         </label>
         <button
           type="submit"
-          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50"
+         
         >
           Apply
         </button>
       </form>
 
-      <div className="mt-4 overflow-x-auto rounded-lg border border-slate-200 bg-white">
-        <table className="w-full text-sm">
+      <div className="table-wrap">
+        <table>
           <thead>
-            <tr className="border-b border-slate-200 text-left text-slate-500">
-              <th className="px-3 py-2">Ticket</th>
-              <th className="px-3 py-2">Subject</th>
-              <th className="px-3 py-2">Project / Flat</th>
-              <th className="px-3 py-2">Reported</th>
-              <th className="px-3 py-2">Priority</th>
-              <th className="px-3 py-2">Technician attending</th>
-              <th className="px-3 py-2">Status</th>
-              <th className="px-3 py-2"></th>
+            <tr>
+              <th>Ticket</th>
+              <th>Subject</th>
+              <th>Project / Flat</th>
+              <th>Reported</th>
+              <th>Priority</th>
+              <th>Technician attending</th>
+              <th>Status</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
             {rows.map((c) => (
-              <tr key={c.id} className="border-b border-slate-100 align-top last:border-0">
-                <td className="px-3 py-2 font-medium text-slate-900">{c.ticketNo}</td>
-                <td className="px-3 py-2 text-slate-700">
+              <tr key={c.id}>
+                <td className="cell-strong">{c.ticketNo}</td>
+                <td>
                   {c.subject}
                   {c.complainantName && (
-                    <div className="text-xs text-slate-400">{c.complainantName}</div>
+                    <div className="cell-sub">{c.complainantName}</div>
                   )}
                 </td>
-                <td className="px-3 py-2 text-slate-500">
+                <td className="muted">
                   {c.project?.name ?? "—"}
-                  {c.unit && <div className="text-xs text-slate-400">{unitLabel(c.unit)}</div>}
+                  {c.unit && <div className="cell-sub">{unitLabel(c.unit)}</div>}
                 </td>
-                <td className="px-3 py-2 text-slate-500">{formatCalendarDate(c.reportedAt) ?? "—"}</td>
-                <td className="px-3 py-2">
+                <td className="muted">{formatCalendarDate(c.reportedAt) ?? "—"}</td>
+                <td>
                   <PriorityBadge priority={c.priority} />
                 </td>
-                <td className="px-3 py-2">
+                <td>
                   <AssignTechnicianSelect
                     complaintId={c.id}
                     technicianId={c.technicianId}
@@ -174,13 +174,13 @@ export default async function ComplaintsPage({
                     disabled={!editable}
                   />
                 </td>
-                <td className="px-3 py-2">
+                <td>
                   <ComplaintStatusBadge status={c.status} />
                 </td>
-                <td className="px-3 py-2 text-right">
+                <td className="numeric">
                   <Link
                     href={`/complaints/${c.id}`}
-                    className="text-slate-500 underline hover:text-slate-900"
+                   
                   >
                     {editable ? "Open" : "View"}
                   </Link>
@@ -189,7 +189,7 @@ export default async function ComplaintsPage({
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-6 text-center text-slate-400">
+                <td colSpan={8} className="empty-state">
                   No complaints match these filters.
                 </td>
               </tr>

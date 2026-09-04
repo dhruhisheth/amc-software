@@ -22,8 +22,6 @@ export interface TechnicianOption {
   name: string;
 }
 
-const inputClass = "rounded-md border border-slate-300 px-2 py-1.5 text-sm";
-
 export default function ServiceHistoryPanel({
   unitId,
   visits,
@@ -76,27 +74,27 @@ export default function ServiceHistoryPanel({
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="card">
+      <div className="page-header">
         <div>
-          <h2 className="font-semibold text-slate-900">Service history</h2>
-          <p className="mt-0.5 text-sm text-slate-500">
-            <span className="font-medium text-green-700">{doneCount} done</span>
+          <h2>Service history</h2>
+          <p className="muted">
+            <span className="success-text">{doneCount} done</span>
             {" · "}
-            <span className="font-medium text-amber-700">{pendingCount} pending</span>
+            <span className="cell-pending">{pendingCount} pending</span>
           </p>
         </div>
         {canEditVisits && (
-          <div className="flex items-center gap-2">
+          <div className="form-actions">
             <button
               onClick={() => setMode(mode === "done" ? null : "done")}
-              className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-700"
+              className="primary"
             >
               Record service done
             </button>
             <button
               onClick={() => setMode(mode === "schedule" ? null : "schedule")}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+             
             >
               Schedule a visit
             </button>
@@ -105,9 +103,9 @@ export default function ServiceHistoryPanel({
       </div>
 
       {mode && (
-        <form onSubmit={handleSubmit} className="mt-4 flex flex-wrap items-end gap-3 rounded-md bg-slate-50 p-3">
-          <label className="text-sm">
-            <span className="block font-medium text-slate-700">
+        <form onSubmit={handleSubmit} className="filters card">
+          <label className="field">
+            <span className="field-label">
               {mode === "done" ? "Service date" : "Scheduled for"}
             </span>
             <input
@@ -115,15 +113,15 @@ export default function ServiceHistoryPanel({
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className={`mt-1 block ${inputClass}`}
+             
             />
           </label>
-          <label className="text-sm">
-            <span className="block font-medium text-slate-700">Technician</span>
+          <label className="field">
+            <span className="field-label">Technician</span>
             <select
               value={technicianId}
               onChange={(e) => setTechnicianId(e.target.value)}
-              className={`mt-1 block ${inputClass}`}
+             
             >
               <option value="">— unassigned —</option>
               {technicians.map((t) => (
@@ -133,33 +131,33 @@ export default function ServiceHistoryPanel({
               ))}
             </select>
           </label>
-          <label className="flex-1 text-sm">
-            <span className="block font-medium text-slate-700">Notes</span>
+          <label className="field">
+            <span className="field-label">Notes</span>
             <input
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className={`mt-1 block w-full ${inputClass}`}
+             
             />
           </label>
           <button
             type="submit"
             disabled={pending}
-            className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+            className="primary"
           >
             {pending ? "Saving..." : mode === "done" ? "Record" : "Schedule"}
           </button>
         </form>
       )}
 
-      {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+      {error && <p className="error-text">{error}</p>}
 
       {visits.length === 0 ? (
-        <p className="mt-3 text-sm text-slate-400">No recorded or scheduled visits.</p>
+        <p className="hint">No recorded or scheduled visits.</p>
       ) : (
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full text-left text-sm">
+        <div className="table-wrap">
+          <table>
             <thead>
-              <tr className="text-slate-400">
+              <tr className="muted">
                 <th className="pb-1 pr-4">#</th>
                 <th className="pb-1 pr-4">Status</th>
                 <th className="pb-1 pr-4">Date</th>
@@ -170,20 +168,20 @@ export default function ServiceHistoryPanel({
             </thead>
             <tbody>
               {visits.map((v) => (
-                <tr key={v.id} className="border-t border-slate-100">
-                  <td className="py-1.5 pr-4 text-slate-500">{v.sequence}</td>
-                  <td className="py-1.5 pr-4">
+                <tr key={v.id}>
+                  <td className="muted">{v.sequence}</td>
+                  <td>
                     <VisitStatusBadge status={v.status} />
                   </td>
-                  <td className="py-1.5 pr-4">
+                  <td>
                     {v.status === "DONE"
-                      ? v.visitDate ?? <span className="text-slate-400">{v.rawText ?? "unparsed"}</span>
+                      ? v.visitDate ?? <span className="muted">{v.rawText ?? "unparsed"}</span>
                       : v.scheduledDate ?? "—"}
                   </td>
-                  <td className="py-1.5 pr-4 text-slate-600">{v.technicianName ?? "—"}</td>
-                  <td className="py-1.5 pr-4 text-slate-500">{v.notes ?? "—"}</td>
-                  <td className="py-1.5 text-right">
-                    <div className="flex items-center justify-end gap-2">
+                  <td>{v.technicianName ?? "—"}</td>
+                  <td className="muted">{v.notes ?? "—"}</td>
+                  <td className="numeric">
+                    <div className="form-actions">
                       {canEditVisits && v.status === "PENDING" && (
                         <button
                           onClick={() =>
@@ -200,7 +198,7 @@ export default function ServiceHistoryPanel({
                             )
                           }
                           disabled={pending}
-                          className="text-xs text-slate-500 underline hover:text-slate-900 disabled:opacity-50"
+                          className="link-button"
                         >
                           Mark done
                         </button>
@@ -209,7 +207,7 @@ export default function ServiceHistoryPanel({
                         <button
                           onClick={() => run(() => deleteVisit(unitId, v.id))}
                           disabled={pending}
-                          className="text-xs text-red-600 underline hover:text-red-800 disabled:opacity-50"
+                          className="link-button danger-text"
                         >
                           Delete
                         </button>

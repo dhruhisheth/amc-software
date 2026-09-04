@@ -25,16 +25,16 @@ export default async function NewComplaintPage({
   const unit = units.find((u) => u.id === unitId);
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 py-8">
-      <Link href="/complaints" className="text-sm text-slate-500 underline hover:text-slate-900">
+    <div className="app-content narrow">
+      <Link href="/complaints" className="back-link">
         ← All complaints
       </Link>
-      <h1 className="mt-2 text-xl font-semibold text-slate-900">Log a complaint</h1>
-      <p className="mt-1 text-sm text-slate-500">
+      <h1>Log a complaint</h1>
+      <p className="muted">
         A ticket number is allocated automatically once the complaint is saved.
       </p>
 
-      <div className="mt-6">
+      <div>
         <ComplaintForm
           mode="create"
           initial={{

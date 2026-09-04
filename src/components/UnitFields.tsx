@@ -1,7 +1,7 @@
 "use client";
 
 import type { UnitInput } from "@/lib/units";
-import { Field, SectionHeading, inputClass } from "@/components/form";
+import { Field, SectionHeading } from "@/components/form";
 
 /**
  * The one flat/unit field set, shared by "Add flat" on a project and the flat's own edit page,
@@ -23,16 +23,16 @@ export function UnitFields({
   }
 
   return (
-    <div className="space-y-5">
+    <div className="page">
       <div>
         <SectionHeading>Location</SectionHeading>
-        <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="form-grid cols-3">
           <Field label="Block No">
             <input
               disabled={disabled}
               value={value.block}
               onChange={(e) => set("block", e.target.value)}
-              className={inputClass}
+             
             />
           </Field>
           <Field label="Flat No">
@@ -40,7 +40,7 @@ export function UnitFields({
               disabled={disabled}
               value={value.flatNo}
               onChange={(e) => set("flatNo", e.target.value)}
-              className={inputClass}
+             
             />
           </Field>
           <Field label="Site / Owner name">
@@ -48,16 +48,16 @@ export function UnitFields({
               disabled={disabled}
               value={value.siteName}
               onChange={(e) => set("siteName", e.target.value)}
-              className={inputClass}
+             
             />
           </Field>
-          <div className="sm:col-span-3">
+          <div className="span-all">
             <Field label="Address">
               <input
                 disabled={disabled}
                 value={value.address}
                 onChange={(e) => set("address", e.target.value)}
-                className={inputClass}
+               
               />
             </Field>
           </div>
@@ -66,13 +66,13 @@ export function UnitFields({
 
       <div>
         <SectionHeading>Equipment</SectionHeading>
-        <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-4">
+        <div className="form-grid cols-4">
           <Field label="HP">
             <input
               disabled={disabled}
               value={value.hp}
               onChange={(e) => set("hp", e.target.value)}
-              className={inputClass}
+             
             />
           </Field>
           <Field label="Type">
@@ -80,7 +80,7 @@ export function UnitFields({
               disabled={disabled}
               value={value.type}
               onChange={(e) => set("type", e.target.value)}
-              className={inputClass}
+             
             />
           </Field>
           <Field label="Through (vendor)">
@@ -88,7 +88,7 @@ export function UnitFields({
               disabled={disabled}
               value={value.through}
               onChange={(e) => set("through", e.target.value)}
-              className={inputClass}
+             
             />
           </Field>
           <Field label="Bill No">
@@ -96,7 +96,7 @@ export function UnitFields({
               disabled={disabled}
               value={value.billNo}
               onChange={(e) => set("billNo", e.target.value)}
-              className={inputClass}
+             
             />
           </Field>
         </div>
@@ -104,14 +104,14 @@ export function UnitFields({
 
       <div>
         <SectionHeading>Service dates &amp; renewal</SectionHeading>
-        <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="form-grid cols-3">
           <Field label="Last service date">
             <input
               type="date"
               disabled={disabled}
               value={value.lastServiceDate}
               onChange={(e) => set("lastServiceDate", e.target.value)}
-              className={inputClass}
+             
             />
           </Field>
           <Field
@@ -123,7 +123,7 @@ export function UnitFields({
               disabled={disabled}
               value={value.nextServiceDueDate}
               onChange={(e) => set("nextServiceDueDate", e.target.value)}
-              className={inputClass}
+             
             />
           </Field>
           <Field
@@ -135,7 +135,7 @@ export function UnitFields({
               disabled={disabled}
               value={value.renewalDueDate}
               onChange={(e) => set("renewalDueDate", e.target.value)}
-              className={inputClass}
+             
             />
           </Field>
           <Field label="AMC period">
@@ -143,7 +143,7 @@ export function UnitFields({
               disabled={disabled}
               value={value.amcPeriodText}
               onChange={(e) => set("amcPeriodText", e.target.value)}
-              className={inputClass}
+             
               placeholder="e.g. 01.04.2025 to 31.03.2026"
             />
           </Field>
@@ -152,7 +152,7 @@ export function UnitFields({
               disabled={disabled}
               value={value.newAmcPeriodText}
               onChange={(e) => set("newAmcPeriodText", e.target.value)}
-              className={inputClass}
+             
             />
           </Field>
           <Field label="Status">
@@ -160,7 +160,7 @@ export function UnitFields({
               disabled={disabled}
               value={value.status}
               onChange={(e) => set("status", e.target.value as "DUE" | "DONE")}
-              className={inputClass}
+             
             >
               <option value="DUE">DUE</option>
               <option value="DONE">DONE</option>
@@ -175,7 +175,7 @@ export function UnitFields({
           value={value.remarks}
           onChange={(e) => set("remarks", e.target.value)}
           rows={3}
-          className={inputClass}
+         
         />
       </Field>
     </div>

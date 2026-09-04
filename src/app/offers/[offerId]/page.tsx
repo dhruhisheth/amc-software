@@ -35,25 +35,25 @@ export default async function OfferPage({ params }: { params: Promise<{ offerId:
   const totals = computeOfferTotals(offer.items, offer.taxPercent);
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 py-8">
-      <div className="print:hidden">
-        <Link href="/offers" className="text-sm text-slate-500 underline hover:text-slate-900">
+    <div className="app-content narrow">
+      <div className="no-print">
+        <Link href="/offers" className="back-link">
           ← All AMC offers
         </Link>
 
-        <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
+        <div className="page-header">
           <div>
-            <h1 className="text-xl font-semibold text-slate-900">{offer.offerNo}</h1>
-            <p className="mt-1 text-sm text-slate-500">
+            <h1>{offer.offerNo}</h1>
+            <p className="muted">
               {offer.customerName} ·{" "}
               {offer.unit ? unitLabel(offer.unit) : (offer.project?.name ?? "Standalone")} ·{" "}
               {formatCurrency(totals.total)}
             </p>
-            <div className="mt-2">
+            <div>
               <OfferStatusBadge status={offer.status} />
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="page-actions">
             {deletable && <DeleteOfferButton offerId={offer.id} />}
           </div>
         </div>
@@ -92,9 +92,9 @@ export default async function OfferPage({ params }: { params: Promise<{ offerId:
         totals={totals}
       />
 
-      <div className="mt-6 print:hidden">
-        <h2 className="text-sm font-semibold text-slate-700">Edit this offer</h2>
-        <div className="mt-2">
+      <div className="no-print">
+        <h2 className="section-label">Edit this offer</h2>
+        <div>
           <OfferForm
             mode="edit"
             offerId={offer.id}

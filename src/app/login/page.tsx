@@ -32,63 +32,50 @@ function LoginForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-sm space-y-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
-      >
+    <div className="login-gate">
+      <div className="login-card">
         <div>
-          <h1 className="text-lg font-semibold text-slate-900">AMC Tracker</h1>
-          <p className="text-sm text-slate-500">Sign in to your account</p>
+          <h2>AMC Tracker</h2>
+          <p>Sign in to your account</p>
         </div>
 
-        {error && (
-          <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
-        )}
+        <form onSubmit={handleSubmit}>
+          {error && <p className="error-text">{error}</p>}
 
-        <div className="space-y-1">
-          <label htmlFor="email" className="text-sm font-medium text-slate-700">
-            Email
+          <label className="field">
+            <span className="field-label">Email</span>
+            <input
+              type="email"
+              required
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </label>
-          <input
-            id="email"
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-          />
-        </div>
 
-        <div className="space-y-1">
-          <label htmlFor="password" className="text-sm font-medium text-slate-700">
-            Password
+          <label className="field">
+            <span className="field-label">Password</span>
+            <input
+              type="password"
+              required
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
           </label>
-          <input
-            id="password"
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-          />
-        </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
-        >
-          {loading ? "Signing in..." : "Sign in"}
-        </button>
-      </form>
+          <button type="submit" className="primary" disabled={loading}>
+            {loading ? "Signing in..." : "Sign in"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
 
 export default function LoginPage() {
   return (
-    <Suspense>
+    <Suspense fallback={<p className="empty-state">Loading…</p>}>
       <LoginForm />
     </Suspense>
   );

@@ -1,34 +1,32 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
 import SessionProvider from "@/components/SessionProvider";
 import NavBar from "@/components/NavBar";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
   title: "AMC Tracker",
   description: "AMC service contract tracker",
+  appleWebApp: { capable: true, title: "AMC", statusBarStyle: "black-translucent" },
+};
+
+// Matches the warehouse app's viewport and theme colour, so the two sit together properly when
+// both are installed on a phone home screen.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#1d4ed8",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col bg-slate-50 text-slate-900">
+    <html lang="en">
+      <body>
         <SessionProvider>
-          <NavBar />
-          <div className="flex flex-1 flex-col">{children}</div>
+          <div className="app-shell">
+            <NavBar />
+            {children}
+          </div>
         </SessionProvider>
       </body>
     </html>

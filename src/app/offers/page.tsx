@@ -38,31 +38,31 @@ export default async function OffersPage({
   ]);
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-8">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="app-content">
+      <div className="page-header">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">AMC offers</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1>AMC offers</h1>
+          <p className="muted">
             Every offer generated, and what became of it. {offers.length} shown.
           </p>
         </div>
         {editable && (
           <Link
             href="/offers/new"
-            className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+            className="primary"
           >
             Generate offer
           </Link>
         )}
       </div>
 
-      <form method="GET" className="mt-4 flex flex-wrap items-end gap-3">
-        <label className="text-sm">
-          <span className="block font-medium text-slate-700">Project</span>
+      <form method="GET" className="filters">
+        <label className="field">
+          <span className="field-label">Project</span>
           <select
             name="projectId"
             defaultValue={projectFilter}
-            className="mt-1 rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+           
           >
             <option value="">All projects</option>
             {projects.map((p) => (
@@ -72,12 +72,12 @@ export default async function OffersPage({
             ))}
           </select>
         </label>
-        <label className="text-sm">
-          <span className="block font-medium text-slate-700">Status</span>
+        <label className="field">
+          <span className="field-label">Status</span>
           <select
             name="status"
             defaultValue={statusFilter}
-            className="mt-1 rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+           
           >
             <option value="">All</option>
             {OFFER_STATUSES.map((s) => (
@@ -89,52 +89,52 @@ export default async function OffersPage({
         </label>
         <button
           type="submit"
-          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50"
+         
         >
           Apply
         </button>
       </form>
 
-      <div className="mt-4 overflow-x-auto rounded-lg border border-slate-200 bg-white">
-        <table className="w-full text-sm">
+      <div className="table-wrap">
+        <table>
           <thead>
-            <tr className="border-b border-slate-200 text-left text-slate-500">
-              <th className="px-3 py-2">Offer no</th>
-              <th className="px-3 py-2">Date</th>
-              <th className="px-3 py-2">Customer</th>
-              <th className="px-3 py-2">For</th>
-              <th className="px-3 py-2">Lines</th>
-              <th className="px-3 py-2 text-right">Total</th>
-              <th className="px-3 py-2">Status</th>
-              <th className="px-3 py-2"></th>
+            <tr>
+              <th>Offer no</th>
+              <th>Date</th>
+              <th>Customer</th>
+              <th>For</th>
+              <th>Lines</th>
+              <th className="numeric">Total</th>
+              <th>Status</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
             {offers.map((offer) => {
               const totals = computeOfferTotals(offer.items, offer.taxPercent);
               return (
-                <tr key={offer.id} className="border-b border-slate-100 align-top last:border-0">
-                  <td className="px-3 py-2 font-medium text-slate-900">{offer.offerNo}</td>
-                  <td className="px-3 py-2 text-slate-500">{formatCalendarDate(offer.offerDate)}</td>
-                  <td className="px-3 py-2 text-slate-700">
+                <tr key={offer.id}>
+                  <td className="cell-strong">{offer.offerNo}</td>
+                  <td className="muted">{formatCalendarDate(offer.offerDate)}</td>
+                  <td>
                     {offer.customerName}
-                    <div className="text-xs text-slate-400">by {offer.createdBy.name}</div>
+                    <div className="cell-sub">by {offer.createdBy.name}</div>
                   </td>
-                  <td className="px-3 py-2 text-slate-500">
+                  <td className="muted">
                     {offer.unit ? unitLabel(offer.unit) : (offer.project?.name ?? "—")}
-                    <div className="text-xs text-slate-400">
+                    <div className="cell-sub">
                       {offer.unit ? "Flat-wise" : offer.project ? "Project-wise" : "Standalone"}
                     </div>
                   </td>
-                  <td className="px-3 py-2 text-slate-500">{offer.items.length}</td>
-                  <td className="px-3 py-2 text-right text-slate-900">{formatCurrency(totals.total)}</td>
-                  <td className="px-3 py-2">
+                  <td className="muted">{offer.items.length}</td>
+                  <td className="numeric">{formatCurrency(totals.total)}</td>
+                  <td>
                     <OfferStatusBadge status={offer.status} />
                   </td>
-                  <td className="px-3 py-2 text-right">
+                  <td className="numeric">
                     <Link
                       href={`/offers/${offer.id}`}
-                      className="text-slate-500 underline hover:text-slate-900"
+                     
                     >
                       Open
                     </Link>
@@ -144,7 +144,7 @@ export default async function OffersPage({
             })}
             {offers.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-6 text-center text-slate-400">
+                <td colSpan={8} className="empty-state">
                   No offers yet. Generate one from a project or a flat.
                 </td>
               </tr>

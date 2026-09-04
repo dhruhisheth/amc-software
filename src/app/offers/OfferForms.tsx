@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Field, SectionHeading, inputClass, primaryButtonClass, secondaryButtonClass } from "@/components/form";
+import { Field, SectionHeading } from "@/components/form";
 import { OFFER_STATUSES, computeOfferTotals, formatCurrency } from "@/lib/offer";
 import { OFFER_STATUS_LABELS } from "@/components/Badges";
 import type { OfferStatus } from "@/generated/prisma/enums";
@@ -78,18 +78,18 @@ export function OfferForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-lg border border-slate-200 bg-white p-6">
-      <div className="space-y-5">
+    <form onSubmit={handleSubmit} className="card">
+      <div className="page">
         <div>
           <SectionHeading>Customer</SectionHeading>
-          <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="form-grid cols-2">
             <Field label="Customer name">
               <input
                 required
                 disabled={readOnly}
                 value={form.customerName}
                 onChange={(e) => set("customerName", e.target.value)}
-                className={inputClass}
+               
               />
             </Field>
             <Field label="Project">
@@ -97,7 +97,7 @@ export function OfferForm({
                 disabled={readOnly}
                 value={form.projectId}
                 onChange={(e) => set("projectId", e.target.value)}
-                className={inputClass}
+               
               >
                 <option value="">— None —</option>
                 {projects.map((p) => (
@@ -107,13 +107,13 @@ export function OfferForm({
                 ))}
               </select>
             </Field>
-            <div className="sm:col-span-2">
+            <div className="span-all">
               <Field label="Customer address">
                 <input
                   disabled={readOnly}
                   value={form.customerAddress}
                   onChange={(e) => set("customerAddress", e.target.value)}
-                  className={inputClass}
+                 
                 />
               </Field>
             </div>
@@ -122,14 +122,14 @@ export function OfferForm({
 
         <div>
           <SectionHeading>Offer</SectionHeading>
-          <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="form-grid cols-3">
             <Field label="Offer date">
               <input
                 type="date"
                 disabled={readOnly}
                 value={form.offerDate}
                 onChange={(e) => set("offerDate", e.target.value)}
-                className={inputClass}
+               
               />
             </Field>
             <Field label="Valid until">
@@ -138,7 +138,7 @@ export function OfferForm({
                 disabled={readOnly}
                 value={form.validUntil}
                 onChange={(e) => set("validUntil", e.target.value)}
-                className={inputClass}
+               
               />
             </Field>
             <Field label="Status">
@@ -146,7 +146,7 @@ export function OfferForm({
                 disabled={readOnly}
                 value={form.status}
                 onChange={(e) => set("status", e.target.value as OfferStatus)}
-                className={inputClass}
+               
               >
                 {OFFER_STATUSES.map((s) => (
                   <option key={s} value={s}>
@@ -161,7 +161,7 @@ export function OfferForm({
                 disabled={readOnly}
                 value={form.periodStart}
                 onChange={(e) => set("periodStart", e.target.value)}
-                className={inputClass}
+               
               />
             </Field>
             <Field label="AMC period to">
@@ -170,7 +170,7 @@ export function OfferForm({
                 disabled={readOnly}
                 value={form.periodEnd}
                 onChange={(e) => set("periodEnd", e.target.value)}
-                className={inputClass}
+               
               />
             </Field>
             <Field label="Tax %">
@@ -180,29 +180,29 @@ export function OfferForm({
                 disabled={readOnly}
                 value={form.taxPercent}
                 onChange={(e) => set("taxPercent", e.target.value)}
-                className={inputClass}
+               
               />
             </Field>
           </div>
         </div>
 
         <div>
-          <div className="flex items-center justify-between">
+          <div className="page-header">
             <SectionHeading>Line items</SectionHeading>
             {!readOnly && (
               <button
                 type="button"
                 onClick={() => set("items", [...form.items, { ...EMPTY_ITEM }])}
-                className="text-sm text-slate-500 underline hover:text-slate-900"
+                className="back-link"
               >
                 Add line
               </button>
             )}
           </div>
-          <div className="mt-2 overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="table-wrap">
+            <table>
               <thead>
-                <tr className="text-left text-xs uppercase tracking-wide text-slate-400">
+                <tr className="section-label">
                   <th className="pb-1 pr-2">Description</th>
                   <th className="w-20 pb-1 pr-2">HP</th>
                   <th className="w-20 pb-1 pr-2">Qty</th>
@@ -219,7 +219,7 @@ export function OfferForm({
                         disabled={readOnly}
                         value={item.description}
                         onChange={(e) => setItem(i, { description: e.target.value })}
-                        className={inputClass}
+                       
                       />
                     </td>
                     <td className="pr-2 align-top">
@@ -227,7 +227,7 @@ export function OfferForm({
                         disabled={readOnly}
                         value={item.hp}
                         onChange={(e) => setItem(i, { hp: e.target.value })}
-                        className={inputClass}
+                       
                       />
                     </td>
                     <td className="pr-2 align-top">
@@ -237,7 +237,7 @@ export function OfferForm({
                         disabled={readOnly}
                         value={item.quantity}
                         onChange={(e) => setItem(i, { quantity: e.target.value })}
-                        className={inputClass}
+                       
                       />
                     </td>
                     <td className="pr-2 align-top">
@@ -247,10 +247,10 @@ export function OfferForm({
                         disabled={readOnly}
                         value={item.unitRate}
                         onChange={(e) => setItem(i, { unitRate: e.target.value })}
-                        className={inputClass}
+                       
                       />
                     </td>
-                    <td className="pr-2 pt-3 text-right align-top text-slate-600">
+                    <td className="numeric">
                       {formatCurrency((Number(item.quantity) || 0) * (Number(item.unitRate) || 0))}
                     </td>
                     <td className="pt-3 align-top">
@@ -258,7 +258,7 @@ export function OfferForm({
                         <button
                           type="button"
                           onClick={() => set("items", form.items.filter((_, idx) => idx !== i))}
-                          className="text-sm text-red-600 hover:underline"
+                          className="link-button danger-text"
                           aria-label="Remove line"
                         >
                           ×
@@ -271,32 +271,32 @@ export function OfferForm({
             </table>
           </div>
 
-          <div className="mt-3 flex justify-end">
-            <dl className="w-64 space-y-1 text-sm">
-              <div className="flex justify-between">
-                <dt className="text-slate-500">Subtotal</dt>
-                <dd className="text-slate-700">{formatCurrency(totals.subtotal)}</dd>
+          <div className="offer-totals">
+            <dl>
+              <div className="row">
+                <dt className="muted">Subtotal</dt>
+                <dd>{formatCurrency(totals.subtotal)}</dd>
               </div>
-              <div className="flex justify-between">
-                <dt className="text-slate-500">Tax ({form.taxPercent || 0}%)</dt>
-                <dd className="text-slate-700">{formatCurrency(totals.tax)}</dd>
+              <div className="row">
+                <dt className="muted">Tax ({form.taxPercent || 0}%)</dt>
+                <dd>{formatCurrency(totals.tax)}</dd>
               </div>
-              <div className="flex justify-between border-t border-slate-200 pt-1 font-semibold">
-                <dt className="text-slate-700">Total</dt>
-                <dd className="text-slate-900">{formatCurrency(totals.total)}</dd>
+              <div className="row total">
+                <dt>Total</dt>
+                <dd>{formatCurrency(totals.total)}</dd>
               </div>
             </dl>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="form-grid cols-2">
           <Field label="Notes">
             <textarea
               disabled={readOnly}
               value={form.notes}
               onChange={(e) => set("notes", e.target.value)}
               rows={3}
-              className={inputClass}
+             
             />
           </Field>
           <Field label="Terms & conditions">
@@ -305,26 +305,26 @@ export function OfferForm({
               value={form.termsText}
               onChange={(e) => set("termsText", e.target.value)}
               rows={3}
-              className={inputClass}
+             
             />
           </Field>
         </div>
       </div>
 
       {readOnly ? (
-        <p className="mt-4 text-sm text-slate-400">
+        <p className="hint">
           Your account has view-only access, so this offer cannot be changed.
         </p>
       ) : (
-        <div className="mt-5 flex flex-wrap items-center gap-3">
-          <button type="submit" disabled={pending} className={primaryButtonClass}>
+        <div className="form-actions">
+          <button type="submit" disabled={pending} className="primary">
             {pending ? "Saving..." : mode === "create" ? "Generate offer" : "Save changes"}
           </button>
-          <button type="button" onClick={() => router.back()} className={secondaryButtonClass}>
+          <button type="button" onClick={() => router.back()}>
             Cancel
           </button>
-          {saved && <span className="text-sm text-green-600">Saved.</span>}
-          {error && <span className="text-sm text-red-600">{error}</span>}
+          {saved && <span className="success-text">Saved.</span>}
+          {error && <span className="error-text">{error}</span>}
         </div>
       )}
     </form>
@@ -351,26 +351,26 @@ export function DeleteOfferButton({ offerId }: { offerId: string }) {
 
   if (!confirming) {
     return (
-      <button onClick={() => setConfirming(true)} className={secondaryButtonClass}>
+      <button onClick={() => setConfirming(true)}>
         Delete
       </button>
     );
   }
 
   return (
-    <span className="flex items-center gap-2 text-sm">
-      <span className="text-red-700">Delete this offer?</span>
+    <span className="form-actions">
+      <span className="error-text">Delete this offer?</span>
       <button
         onClick={handleDelete}
         disabled={pending}
-        className="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+        className="danger-solid"
       >
         {pending ? "Deleting..." : "Yes, delete"}
       </button>
-      <button onClick={() => setConfirming(false)} className={secondaryButtonClass}>
+      <button onClick={() => setConfirming(false)}>
         Keep
       </button>
-      {error && <span className="text-red-600">{error}</span>}
+      {error && <span className="error-text">{error}</span>}
     </span>
   );
 }

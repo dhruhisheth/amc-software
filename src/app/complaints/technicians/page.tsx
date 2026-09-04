@@ -15,13 +15,13 @@ export default async function TechniciansPage() {
   });
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-8 space-y-6">
+    <div className="app-content narrow">
       <div>
-        <Link href="/complaints" className="text-sm text-slate-500 underline hover:text-slate-900">
+        <Link href="/complaints" className="back-link">
           ← All complaints
         </Link>
-        <h1 className="mt-2 text-xl font-semibold text-slate-900">Technicians</h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <h1>Technicians</h1>
+        <p className="muted">
           The people who attend complaints and carry out services. Everyone here can be picked by
           name on a complaint or a service visit.
         </p>
@@ -29,15 +29,15 @@ export default async function TechniciansPage() {
 
       {editable && <AddTechnicianForm />}
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-        <table className="w-full text-left text-sm">
+      <div className="table-wrap">
+        <table>
           <thead>
-            <tr className="border-b border-slate-200 text-slate-500">
-              <th className="px-3 py-2">Name</th>
-              <th className="px-3 py-2">Phone</th>
-              <th className="px-3 py-2">Skills / notes</th>
-              <th className="px-3 py-2">Attended</th>
-              <th className="px-3 py-2"></th>
+            <tr>
+              <th>Name</th>
+              <th>Phone</th>
+              <th>Skills / notes</th>
+              <th>Attended</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -59,7 +59,7 @@ export default async function TechniciansPage() {
             ))}
             {technicians.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-slate-400">
+                <td colSpan={5} className="empty-state">
                   No technicians yet. Add one above so complaints can be assigned by name.
                 </td>
               </tr>

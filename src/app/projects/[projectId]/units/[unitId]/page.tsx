@@ -55,29 +55,29 @@ export default async function UnitPage({
   const heading = [unit.block, unit.flatNo].filter(Boolean).join(" / ") || unit.siteName || "Unnamed flat";
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-8">
-      <Link href={`/projects/${projectId}`} className="text-sm text-slate-500 underline hover:text-slate-900">
+    <div className="app-content narrow">
+      <Link href={`/projects/${projectId}`} className="back-link">
         ← Back to {unit.project.name}
       </Link>
 
-      <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
+      <div className="page-header">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">{heading}</h1>
-          <p className="text-sm text-slate-500">
+          <h1>{heading}</h1>
+          <p className="muted">
             {unit.siteName ?? "—"}
             {unit.address && ` · ${unit.address}`}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="page-actions">
           <Link
             href={`/complaints/new?unitId=${unit.id}`}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+           
           >
             Log complaint
           </Link>
           <Link
             href={`/offers/new?unitId=${unit.id}`}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+           
           >
             Generate AMC offer
           </Link>
@@ -87,28 +87,28 @@ export default async function UnitPage({
 
       {/* Service and renewal are shown as two separate cards on purpose — they are two different
           due dates and are meant to be read independently. */}
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="rounded-lg border border-slate-200 bg-white p-4">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Service due</h2>
-          <div className="mt-2 flex items-center gap-2">
+      <div className="form-grid cols-2">
+        <div className="card">
+          <h2 className="section-label">Service due</h2>
+          <div className="page-actions">
             <ServiceBadge bucket={serviceBucket} />
-            <span className="text-lg font-semibold text-slate-900">
+            <span>
               {formatCalendarDate(unit.nextServiceDueDate) ?? "—"}
             </span>
           </div>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="cell-sub">
             Last serviced {formatCalendarDate(unit.lastServiceDate) ?? "never"}
           </p>
         </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-4">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Renewal due</h2>
-          <div className="mt-2 flex items-center gap-2">
+        <div className="card">
+          <h2 className="section-label">Renewal due</h2>
+          <div className="page-actions">
             <RenewalBadge bucket={renewalBucket} />
-            <span className="text-lg font-semibold text-slate-900">
+            <span>
               {formatCalendarDate(renewalDue) ?? "—"}
             </span>
           </div>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="cell-sub">
             {unit.renewalDueDateOverride
               ? "Set by hand"
               : `From AMC period${unit.newAmcPeriodText ? " (renewed)" : ""}`}
@@ -116,7 +116,7 @@ export default async function UnitPage({
         </div>
       </div>
 
-      <div className="mt-6">
+      <div>
         <UnitEditForm
           unitId={unit.id}
           readOnly={!editable}
@@ -124,7 +124,7 @@ export default async function UnitPage({
         />
       </div>
 
-      <div className="mt-6">
+      <div>
         <ServiceHistoryPanel
           unitId={unit.id}
           visits={visitRows}

@@ -81,12 +81,12 @@ export default async function NewOfferPage({
   };
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 py-8">
-      <Link href="/offers" className="text-sm text-slate-500 underline hover:text-slate-900">
+    <div className="app-content narrow">
+      <Link href="/offers" className="back-link">
         ← All AMC offers
       </Link>
-      <h1 className="mt-2 text-xl font-semibold text-slate-900">Generate AMC offer</h1>
-      <p className="mt-1 text-sm text-slate-500">
+      <h1>Generate AMC offer</h1>
+      <p className="muted">
         {scope === "flat" && unit
           ? `For ${unitLabel(unit)} in ${unit.project.name}.`
           : scope === "project" && project
@@ -94,7 +94,7 @@ export default async function NewOfferPage({
             : "An offer number is allocated automatically once it is saved."}
       </p>
 
-      <div className="mt-6">
+      <div>
         <OfferForm mode="create" initial={initial} projects={projects} />
       </div>
     </div>

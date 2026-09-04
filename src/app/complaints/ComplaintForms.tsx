@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Field, SectionHeading, inputClass, primaryButtonClass, secondaryButtonClass } from "@/components/form";
+import { Field, SectionHeading } from "@/components/form";
 import { COMPLAINT_PRIORITIES, COMPLAINT_STATUSES, type ComplaintInput } from "@/lib/complaints";
 import { COMPLAINT_STATUS_LABELS, PRIORITY_LABELS } from "@/components/Badges";
 import type { ComplaintPriority, ComplaintStatus } from "@/generated/prisma/enums";
@@ -76,19 +76,19 @@ export function ComplaintForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-lg border border-slate-200 bg-white p-6">
-      <div className="space-y-5">
+    <form onSubmit={handleSubmit} className="card">
+      <div className="page">
         <div>
           <SectionHeading>Complaint</SectionHeading>
-          <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="sm:col-span-2">
+          <div className="form-grid cols-2">
+            <div className="span-all">
               <Field label="Subject">
                 <input
                   required
                   disabled={readOnly}
                   value={form.subject}
                   onChange={(e) => set("subject", e.target.value)}
-                  className={inputClass}
+                 
                   placeholder="e.g. AC not cooling in bedroom"
                 />
               </Field>
@@ -107,7 +107,7 @@ export function ComplaintForm({
                   }));
                   setSaved(false);
                 }}
-                className={inputClass}
+               
               >
                 <option value="">— None —</option>
                 {projects.map((p) => (
@@ -131,7 +131,7 @@ export function ComplaintForm({
                   }));
                   setSaved(false);
                 }}
-                className={inputClass}
+               
               >
                 <option value="">— None —</option>
                 {flatOptions.map((u) => (
@@ -146,7 +146,7 @@ export function ComplaintForm({
                 disabled={readOnly}
                 value={form.complainantName}
                 onChange={(e) => set("complainantName", e.target.value)}
-                className={inputClass}
+               
               />
             </Field>
             <Field label="Contact number">
@@ -154,17 +154,17 @@ export function ComplaintForm({
                 disabled={readOnly}
                 value={form.contactNumber}
                 onChange={(e) => set("contactNumber", e.target.value)}
-                className={inputClass}
+               
               />
             </Field>
-            <div className="sm:col-span-2">
+            <div className="span-all">
               <Field label="Description">
                 <textarea
                   disabled={readOnly}
                   value={form.description}
                   onChange={(e) => set("description", e.target.value)}
                   rows={3}
-                  className={inputClass}
+                 
                 />
               </Field>
             </div>
@@ -173,13 +173,13 @@ export function ComplaintForm({
 
         <div>
           <SectionHeading>Attending</SectionHeading>
-          <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="form-grid cols-3">
             <Field label="Technician attending" hint="Who is handling this complaint.">
               <select
                 disabled={readOnly}
                 value={form.technicianId}
                 onChange={(e) => set("technicianId", e.target.value)}
-                className={inputClass}
+               
               >
                 <option value="">— Unassigned —</option>
                 {technicians.map((t) => (
@@ -194,7 +194,7 @@ export function ComplaintForm({
                 disabled={readOnly}
                 value={form.priority}
                 onChange={(e) => set("priority", e.target.value as ComplaintPriority)}
-                className={inputClass}
+               
               >
                 {COMPLAINT_PRIORITIES.map((p) => (
                   <option key={p} value={p}>
@@ -208,7 +208,7 @@ export function ComplaintForm({
                 disabled={readOnly}
                 value={form.status}
                 onChange={(e) => set("status", e.target.value as ComplaintStatus)}
-                className={inputClass}
+               
               >
                 {COMPLAINT_STATUSES.map((st) => (
                   <option key={st} value={st}>
@@ -223,7 +223,7 @@ export function ComplaintForm({
                 disabled={readOnly}
                 value={form.attendedAt}
                 onChange={(e) => set("attendedAt", e.target.value)}
-                className={inputClass}
+               
               />
             </Field>
             <Field label="Resolved on" hint="Filled in automatically when the status becomes Resolved.">
@@ -232,17 +232,17 @@ export function ComplaintForm({
                 disabled={readOnly}
                 value={form.resolvedAt}
                 onChange={(e) => set("resolvedAt", e.target.value)}
-                className={inputClass}
+               
               />
             </Field>
-            <div className="sm:col-span-3">
+            <div className="span-all">
               <Field label="Resolution notes">
                 <textarea
                   disabled={readOnly}
                   value={form.resolutionNotes}
                   onChange={(e) => set("resolutionNotes", e.target.value)}
                   rows={2}
-                  className={inputClass}
+                 
                 />
               </Field>
             </div>
@@ -251,19 +251,19 @@ export function ComplaintForm({
       </div>
 
       {readOnly ? (
-        <p className="mt-4 text-sm text-slate-400">
+        <p className="hint">
           Your account has view-only access, so this complaint cannot be changed.
         </p>
       ) : (
-        <div className="mt-5 flex flex-wrap items-center gap-3">
-          <button type="submit" disabled={pending} className={primaryButtonClass}>
+        <div className="form-actions">
+          <button type="submit" disabled={pending} className="primary">
             {pending ? "Saving..." : mode === "create" ? "Log complaint" : "Save changes"}
           </button>
-          <button type="button" onClick={() => router.back()} className={secondaryButtonClass}>
+          <button type="button" onClick={() => router.back()}>
             Cancel
           </button>
-          {saved && <span className="text-sm text-green-600">Saved.</span>}
-          {error && <span className="text-sm text-red-600">{error}</span>}
+          {saved && <span className="success-text">Saved.</span>}
+          {error && <span className="error-text">{error}</span>}
         </div>
       )}
     </form>
@@ -304,7 +304,7 @@ export function AssignTechnicianSelect({
         value={technicianId ?? ""}
         disabled={disabled || pending}
         onChange={(e) => handleChange(e.target.value)}
-        className="rounded-md border border-slate-300 px-2 py-1 text-sm disabled:border-transparent disabled:bg-transparent disabled:text-slate-600"
+       
       >
         <option value="">— Unassigned —</option>
         {technicians.map((t) => (
@@ -313,7 +313,7 @@ export function AssignTechnicianSelect({
           </option>
         ))}
       </select>
-      {error && <div className="text-xs text-red-600">{error}</div>}
+      {error && <div className="error-text">{error}</div>}
     </>
   );
 }
@@ -338,26 +338,26 @@ export function DeleteComplaintButton({ complaintId }: { complaintId: string }) 
 
   if (!confirming) {
     return (
-      <button onClick={() => setConfirming(true)} className={secondaryButtonClass}>
+      <button onClick={() => setConfirming(true)}>
         Delete
       </button>
     );
   }
 
   return (
-    <span className="flex items-center gap-2 text-sm">
-      <span className="text-red-700">Delete this complaint?</span>
+    <span className="form-actions">
+      <span className="error-text">Delete this complaint?</span>
       <button
         onClick={handleDelete}
         disabled={pending}
-        className="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+        className="danger-solid"
       >
         {pending ? "Deleting..." : "Yes, delete"}
       </button>
-      <button onClick={() => setConfirming(false)} className={secondaryButtonClass}>
+      <button onClick={() => setConfirming(false)}>
         Keep
       </button>
-      {error && <span className="text-red-600">{error}</span>}
+      {error && <span className="error-text">{error}</span>}
     </span>
   );
 }

@@ -119,9 +119,9 @@ export default function UploadWizard() {
 
   if (commitResult) {
     return (
-      <div className="rounded-lg border border-green-200 bg-green-50 p-6">
-        <h2 className="text-lg font-semibold text-green-900">Upload complete</h2>
-        <ul className="mt-3 space-y-1 text-sm text-green-800">
+      <div className="card success-card">
+        <h2 className="success-text">Upload complete</h2>
+        <ul className="success-text">
           {commitResult.results.map((r) => (
             <li key={r.projectName}>
               {r.projectName}: {r.unitCount} units saved
@@ -136,7 +136,7 @@ export default function UploadWizard() {
             setPreviews({});
             setChoicesBySheet({});
           }}
-          className="mt-4 rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-700"
+          className="primary"
         >
           Upload another file
         </button>
@@ -146,21 +146,21 @@ export default function UploadWizard() {
 
   if (!analysis) {
     return (
-      <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-6">
+      <div className="card">
         <div>
-          <label className="text-sm font-medium text-slate-700">Excel file (.xlsx)</label>
+          <label className="field-label">Excel file (.xlsx)</label>
           <input
             type="file"
             accept=".xlsx"
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            className="mt-1 block w-full text-sm"
+            className="field"
           />
         </div>
-        {error && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+        {error && <p className="error-text">{error}</p>}
         <button
           onClick={handleAnalyze}
           disabled={!file || analyzing}
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+          className="primary"
         >
           {analyzing ? "Analyzing..." : "Analyze"}
         </button>
@@ -169,8 +169,8 @@ export default function UploadWizard() {
   }
 
   return (
-    <div className="space-y-6">
-      {error && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+    <div className="page">
+      {error && <p className="error-text">{error}</p>}
       {analysis.sheets.map((sheet) => (
         <SheetCard
           key={sheet.sheetName}
@@ -185,7 +185,7 @@ export default function UploadWizard() {
       <button
         onClick={handleCommit}
         disabled={committing}
-        className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+        className="primary"
       >
         {committing ? "Saving..." : "Confirm & Save All"}
       </button>
@@ -215,11 +215,11 @@ function SheetCard({
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-6">
-      <div className="flex items-center justify-between gap-4">
+    <div className="card">
+      <div className="page-header">
         <div>
-          <h3 className="font-semibold text-slate-900">{sheet.sheetName}</h3>
-          <p className="text-sm text-slate-500">
+          <h3>{sheet.sheetName}</h3>
+          <p className="muted">
             {sheet.existingProjectId
               ? sheet.needsMapping
                 ? `Existing project "${sheet.existingProjectName}" — column layout changed, please review the mapping below`
@@ -227,16 +227,16 @@ function SheetCard({
               : "New project — please map its columns below"}
           </p>
         </div>
-        <button onClick={() => setExpanded((v) => !v)} className="shrink-0 text-sm text-slate-500 underline">
+        <button onClick={() => setExpanded((v) => !v)} className="back-link">
           {expanded ? "Hide mapping" : "Edit mapping"}
         </button>
       </div>
 
       {expanded && (
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="table-wrap">
+          <table>
             <thead>
-              <tr className="text-left text-slate-500">
+              <tr>
                 <th className="pb-2 pr-4">Column</th>
                 <th className="pb-2 pr-4">Header</th>
                 <th className="pb-2 pr-4">Sample values</th>
@@ -245,17 +245,17 @@ function SheetCard({
             </thead>
             <tbody>
               {sheet.columnPreviews.map((col) => (
-                <tr key={col.colNumber} className="border-t border-slate-100">
-                  <td className="py-2 pr-4 text-slate-500">{col.colNumber}</td>
-                  <td className="py-2 pr-4">
-                    {col.headerText ?? <span className="text-slate-400">(none)</span>}
+                <tr key={col.colNumber}>
+                  <td className="muted">{col.colNumber}</td>
+                  <td>
+                    {col.headerText ?? <span className="muted">(none)</span>}
                   </td>
-                  <td className="py-2 pr-4 text-slate-500">{col.samples.join(", ") || "—"}</td>
-                  <td className="py-2">
+                  <td className="muted">{col.samples.join(", ") || "—"}</td>
+                  <td>
                     <select
                       value={choices[col.colNumber] ?? ""}
                       onChange={(e) => setChoice(col.colNumber, e.target.value as ColumnChoice)}
-                      className="rounded-md border border-slate-300 px-2 py-1 text-sm"
+                     
                     >
                       <option value="">Ignore</option>
                       <option value="serviceDate">Service Date (ordered)</option>
@@ -273,18 +273,18 @@ function SheetCard({
         </div>
       )}
 
-      <div className="mt-4">
+      <div>
         <button
           onClick={onPreview}
           disabled={previewLoading}
-          className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+         
         >
           {previewLoading ? "Loading preview..." : "Preview this sheet"}
         </button>
       </div>
 
       {preview && (
-        <div className="mt-4 rounded-md bg-slate-50 p-4 text-sm text-slate-600">
+        <div className="card">
           <p>
             {preview.stats.unitCount} units parsed from {preview.stats.rowsScanned} rows scanned (
             {preview.stats.rowsSkippedBlank} blank rows skipped).
@@ -294,9 +294,9 @@ function SheetCard({
             AMC period cells: {preview.stats.totalAmcPeriods} ({preview.stats.unparsedAmcPeriods} unparsed).
           </p>
           {preview.sampleUnits.length > 0 && (
-            <table className="mt-3 w-full text-left text-xs">
+            <table>
               <thead>
-                <tr className="text-slate-400">
+                <tr className="muted">
                   <th className="pb-1 pr-3">Block</th>
                   <th className="pb-1 pr-3">Flat</th>
                   <th className="pb-1 pr-3">Site</th>
@@ -308,14 +308,14 @@ function SheetCard({
               </thead>
               <tbody>
                 {preview.sampleUnits.map((u, i) => (
-                  <tr key={i} className="border-t border-slate-200">
-                    <td className="py-1 pr-3">{u.block ?? "—"}</td>
-                    <td className="py-1 pr-3">{u.flatNo ?? "—"}</td>
-                    <td className="py-1 pr-3">{u.siteName ?? "—"}</td>
-                    <td className="py-1 pr-3">{u.through ?? "—"}</td>
-                    <td className="py-1 pr-3">{u.status}</td>
-                    <td className="py-1 pr-3">{u.lastServiceDate ?? "—"}</td>
-                    <td className="py-1">{u.visitCount}</td>
+                  <tr key={i}>
+                    <td>{u.block ?? "—"}</td>
+                    <td>{u.flatNo ?? "—"}</td>
+                    <td>{u.siteName ?? "—"}</td>
+                    <td>{u.through ?? "—"}</td>
+                    <td>{u.status}</td>
+                    <td>{u.lastServiceDate ?? "—"}</td>
+                    <td>{u.visitCount}</td>
                   </tr>
                 ))}
               </tbody>

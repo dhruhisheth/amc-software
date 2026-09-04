@@ -74,26 +74,26 @@ export default async function HistoryPage({
   const totalOverdue = rows.reduce((sum, r) => sum + r.summary.overduePendingCount, 0);
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-8">
-      <h1 className="text-xl font-semibold text-slate-900">Service history</h1>
-      <p className="mt-1 text-sm text-slate-500">
+    <div className="app-content">
+      <h1>Service history</h1>
+      <p className="muted">
         How much service has been done and how much is still pending, and on which date.
       </p>
 
-      <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="stat-tiles four">
         <StatCard label="Flats" value={rows.length} />
         <StatCard label="Services done" value={totalDone} tone="success" />
         <StatCard label="Services pending" value={totalPending} tone="warning" />
         <StatCard label="Pending past due" value={totalOverdue} tone="danger" />
       </div>
 
-      <form method="GET" className="mt-6 flex flex-wrap items-end gap-3">
-        <label className="text-sm">
-          <span className="block font-medium text-slate-700">Project</span>
+      <form method="GET" className="filters">
+        <label className="field">
+          <span className="field-label">Project</span>
           <select
             name="projectId"
             defaultValue={projectFilter}
-            className="mt-1 rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+           
           >
             <option value="">All projects</option>
             {projects.map((p) => (
@@ -103,24 +103,24 @@ export default async function HistoryPage({
             ))}
           </select>
         </label>
-        <label className="text-sm">
-          <span className="block font-medium text-slate-700">Visits</span>
+        <label className="field">
+          <span className="field-label">Visits</span>
           <select
             name="status"
             defaultValue={statusFilter}
-            className="mt-1 rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+           
           >
             <option value="">Done and pending</option>
             <option value="DONE">Done only</option>
             <option value="PENDING">Pending only</option>
           </select>
         </label>
-        <label className="text-sm">
-          <span className="block font-medium text-slate-700">Technician</span>
+        <label className="field">
+          <span className="field-label">Technician</span>
           <select
             name="technician"
             defaultValue={technicianFilter}
-            className="mt-1 rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+           
           >
             <option value="">Anyone</option>
             <option value="unassigned">Not recorded</option>
@@ -133,50 +133,50 @@ export default async function HistoryPage({
         </label>
         <button
           type="submit"
-          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50"
+         
         >
           Apply
         </button>
       </form>
 
-      <h2 className="mt-8 text-sm font-semibold text-slate-700">Per flat</h2>
-      <div className="mt-2 overflow-x-auto rounded-lg border border-slate-200 bg-white">
-        <table className="w-full text-sm">
+      <h2 className="section-label">Per flat</h2>
+      <div className="table-wrap">
+        <table>
           <thead>
-            <tr className="border-b border-slate-200 text-left text-slate-500">
-              <th className="px-3 py-2">Flat</th>
-              <th className="px-3 py-2">Project</th>
-              <th className="px-3 py-2">Done</th>
-              <th className="px-3 py-2">Pending</th>
-              <th className="px-3 py-2">Last done on</th>
-              <th className="px-3 py-2">Next pending on</th>
-              <th className="px-3 py-2"></th>
+            <tr>
+              <th>Flat</th>
+              <th>Project</th>
+              <th>Done</th>
+              <th>Pending</th>
+              <th>Last done on</th>
+              <th>Next pending on</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
             {rows.map(({ unit, summary }) => (
-              <tr key={unit.id} className="border-b border-slate-100 last:border-0">
-                <td className="px-3 py-2 font-medium text-slate-900">{unitLabel(unit)}</td>
-                <td className="px-3 py-2 text-slate-500">{unit.project.name}</td>
-                <td className="px-3 py-2">
+              <tr key={unit.id}>
+                <td className="cell-strong">{unitLabel(unit)}</td>
+                <td className="muted">{unit.project.name}</td>
+                <td>
                   <Badge tone={summary.doneCount > 0 ? "success" : "neutral"}>{summary.doneCount}</Badge>
                 </td>
-                <td className="px-3 py-2">
+                <td>
                   <Badge tone={summary.overduePendingCount > 0 ? "danger" : summary.pendingCount > 0 ? "warning" : "neutral"}>
                     {summary.pendingCount}
                     {summary.overduePendingCount > 0 && ` (${summary.overduePendingCount} past due)`}
                   </Badge>
                 </td>
-                <td className="px-3 py-2 text-slate-600">
+                <td>
                   {formatCalendarDate(summary.lastDoneDate) ?? "—"}
                 </td>
-                <td className="px-3 py-2 text-slate-600">
+                <td>
                   {formatCalendarDate(summary.nextPendingDate) ?? "—"}
                 </td>
-                <td className="px-3 py-2 text-right">
+                <td className="numeric">
                   <Link
                     href={`/projects/${unit.projectId}/units/${unit.id}`}
-                    className="text-slate-500 underline hover:text-slate-900"
+                   
                   >
                     Open
                   </Link>
@@ -185,7 +185,7 @@ export default async function HistoryPage({
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-6 text-center text-slate-400">
+                <td colSpan={7} className="empty-state">
                   No flats to report on yet.
                 </td>
               </tr>
@@ -194,42 +194,42 @@ export default async function HistoryPage({
         </table>
       </div>
 
-      <h2 className="mt-8 text-sm font-semibold text-slate-700">
+      <h2 className="section-label">
         Every service, by date ({visitRows.length})
       </h2>
-      <div className="mt-2 overflow-x-auto rounded-lg border border-slate-200 bg-white">
-        <table className="w-full text-sm">
+      <div className="table-wrap">
+        <table>
           <thead>
-            <tr className="border-b border-slate-200 text-left text-slate-500">
-              <th className="px-3 py-2">Date</th>
-              <th className="px-3 py-2">Done / pending</th>
-              <th className="px-3 py-2">Flat</th>
-              <th className="px-3 py-2">Project</th>
-              <th className="px-3 py-2">Visit no</th>
-              <th className="px-3 py-2">Technician</th>
-              <th className="px-3 py-2">Notes</th>
+            <tr>
+              <th>Date</th>
+              <th>Done / pending</th>
+              <th>Flat</th>
+              <th>Project</th>
+              <th>Visit no</th>
+              <th>Technician</th>
+              <th>Notes</th>
             </tr>
           </thead>
           <tbody>
             {visitRows.map(({ unit, entry }) => (
-              <tr key={`${unit.id}-${entry.sequence}`} className="border-b border-slate-100 last:border-0">
-                <td className="px-3 py-2 text-slate-700">
+              <tr key={`${unit.id}-${entry.sequence}`}>
+                <td>
                   {formatCalendarDate(entry.date) ?? entry.rawText ?? "—"}
-                  {entry.overdue && <span className="ml-1 text-xs text-red-600">past due</span>}
+                  {entry.overdue && <span className="error-text">past due</span>}
                 </td>
-                <td className="px-3 py-2">
+                <td>
                   <VisitStatusBadge status={entry.status} />
                 </td>
-                <td className="px-3 py-2 text-slate-700">{unitLabel(unit)}</td>
-                <td className="px-3 py-2 text-slate-500">{unit.project.name}</td>
-                <td className="px-3 py-2 text-slate-500">{entry.sequence}</td>
-                <td className="px-3 py-2 text-slate-500">{entry.technicianName ?? "—"}</td>
-                <td className="px-3 py-2 text-slate-500">{entry.notes ?? "—"}</td>
+                <td>{unitLabel(unit)}</td>
+                <td className="muted">{unit.project.name}</td>
+                <td className="muted">{entry.sequence}</td>
+                <td className="muted">{entry.technicianName ?? "—"}</td>
+                <td className="muted">{entry.notes ?? "—"}</td>
               </tr>
             ))}
             {visitRows.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-6 text-center text-slate-400">
+                <td colSpan={7} className="empty-state">
                   No services match these filters.
                 </td>
               </tr>
@@ -250,18 +250,12 @@ function StatCard({
   value: number;
   tone?: "default" | "danger" | "warning" | "success";
 }) {
-  const toneClass =
-    tone === "danger"
-      ? "text-red-600"
-      : tone === "warning"
-        ? "text-amber-600"
-        : tone === "success"
-          ? "text-green-600"
-          : "text-slate-900";
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</p>
-      <p className={`mt-1 text-2xl font-semibold ${toneClass}`}>{value}</p>
+    <div className="stat-tile">
+      <span className="stat-tile-label">{label}</span>
+      <span className={tone === "default" ? "stat-tile-value" : `stat-tile-value ${tone}`}>
+        {value}
+      </span>
     </div>
   );
 }
