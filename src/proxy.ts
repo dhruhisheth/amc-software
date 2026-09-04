@@ -1,6 +1,8 @@
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 
+// Areas only an admin may open at all. Everything else is reachable by any signed-in role;
+// what a role may *change* there is enforced per action by lib/auth/guards.ts.
 const ADMIN_ONLY_PREFIXES = ["/upload", "/settings"];
 
 export default withAuth(

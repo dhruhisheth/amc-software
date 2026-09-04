@@ -7,10 +7,11 @@ import { prisma } from "@/lib/prisma";
 import {
   computeServiceBucket,
   computeRenewalBucket,
-  effectiveAmcEnd,
+  resolveRenewalDueDate,
   SERVICE_BUCKET_LABELS,
   RENEWAL_BUCKET_LABELS,
 } from "@/lib/status";
+import { summarizeServiceHistory } from "@/lib/serviceHistory";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -43,9 +44,10 @@ export async function GET() {
 
     worksheet.columns = [
       { header: "Sr No", key: "srNo", width: 8 },
-      { header: "Block", key: "block", width: 10 },
+      { header: "Block No", key: "block", width: 10 },
+      { header: "Flat No", key: "flatNo", width: 10 },
+      { header: "Address", key: "address", width: 30 },
       { header: "Site Name", key: "siteName", width: 30 },
-      { header: "Contact Info", key: "contactInfo", width: 25 },
       { header: "HP", key: "hp", width: 8 },
       { header: "Through", key: "through", width: 20 },
       { header: "Type", key: "type", width: 20 },
@@ -56,24 +58,28 @@ export async function GET() {
       { header: "Status", key: "status", width: 10 },
       { header: "Manual Override", key: "manualOverride", width: 14 },
       { header: "Last Service Date", key: "lastServiceDate", width: 16 },
-      { header: "Next Service Due", key: "nextServiceDueDate", width: 16 },
+      { header: "Service Due Date", key: "nextServiceDueDate", width: 16 },
       { header: "Service Status", key: "serviceBucket", width: 14 },
-      { header: "AMC End (effective)", key: "amcEnd", width: 16 },
+      { header: "Renewal Due Date", key: "renewalDueDate", width: 16 },
       { header: "Renewal Status", key: "renewalBucket", width: 14 },
+      { header: "Services Done", key: "servicesDone", width: 13 },
+      { header: "Services Pending", key: "servicesPending", width: 15 },
       ...serviceDateHeaders.map((header, i) => ({ header, key: `serviceDate${i + 1}`, width: 14 })),
     ];
     worksheet.getRow(1).font = { bold: true };
 
     for (const unit of project.units) {
       const bucket = computeServiceBucket(unit.nextServiceDueDate, now);
-      const renewalBucket = computeRenewalBucket(effectiveAmcEnd(unit), now, appSettings.renewalAlertLeadDays);
-      const amcEnd = effectiveAmcEnd(unit);
+      const renewalDue = resolveRenewalDueDate(unit);
+      const renewalBucket = computeRenewalBucket(renewalDue, now, appSettings.renewalAlertLeadDays);
+      const history = summarizeServiceHistory(unit.visits, now);
 
       const row: Record<string, unknown> = {
         srNo: unit.srNoRaw,
         block: unit.block,
+        flatNo: unit.flatNo,
+        address: unit.address,
         siteName: unit.siteName,
-        contactInfo: unit.contactInfo,
         hp: unit.hp,
         through: unit.through,
         type: unit.type,
@@ -86,23 +92,30 @@ export async function GET() {
         lastServiceDate: unit.lastServiceDate,
         nextServiceDueDate: unit.nextServiceDueDate,
         serviceBucket: SERVICE_BUCKET_LABELS[bucket],
-        amcEnd,
+        renewalDueDate: renewalDue,
         renewalBucket: RENEWAL_BUCKET_LABELS[renewalBucket],
+        servicesDone: history.doneCount,
+        servicesPending: history.pendingCount,
       };
 
-      unit.visits.forEach((v, i) => {
-        row[`serviceDate${i + 1}`] = v.visitDate ?? v.rawText ?? null;
+      history.entries.forEach((entry, i) => {
+        row[`serviceDate${i + 1}`] = entry.date ?? entry.rawText ?? null;
       });
 
       const addedRow = worksheet.addRow(row);
-      for (const key of ["lastServiceDate", "nextServiceDueDate", "amcEnd"]) {
+      for (const key of ["lastServiceDate", "nextServiceDueDate", "renewalDueDate"]) {
         const cell = addedRow.getCell(key);
         if (cell.value instanceof Date) cell.numFmt = dateFmt;
       }
-      unit.visits.forEach((v, i) => {
-        if (v.visitDate) {
+      history.entries.forEach((entry, i) => {
+        if (entry.date) {
           const cell = addedRow.getCell(`serviceDate${i + 1}`);
           cell.numFmt = dateFmt;
+          // Pending visits are dates too, but they are plans, not records — tint them so the
+          // sheet doesn't read as if the work was already done.
+          if (entry.status === "PENDING") {
+            cell.font = { color: { argb: "FFB45309" }, italic: true };
+          }
         }
       });
     }

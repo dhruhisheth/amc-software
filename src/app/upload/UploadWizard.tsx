@@ -297,8 +297,9 @@ function SheetCard({
             <table className="mt-3 w-full text-left text-xs">
               <thead>
                 <tr className="text-slate-400">
+                  <th className="pb-1 pr-3">Block</th>
+                  <th className="pb-1 pr-3">Flat</th>
                   <th className="pb-1 pr-3">Site</th>
-                  <th className="pb-1 pr-3">Contact</th>
                   <th className="pb-1 pr-3">Through</th>
                   <th className="pb-1 pr-3">Status</th>
                   <th className="pb-1 pr-3">Last service</th>
@@ -308,8 +309,9 @@ function SheetCard({
               <tbody>
                 {preview.sampleUnits.map((u, i) => (
                   <tr key={i} className="border-t border-slate-200">
+                    <td className="py-1 pr-3">{u.block ?? "—"}</td>
+                    <td className="py-1 pr-3">{u.flatNo ?? "—"}</td>
                     <td className="py-1 pr-3">{u.siteName ?? "—"}</td>
-                    <td className="py-1 pr-3">{u.contactInfo ?? "—"}</td>
                     <td className="py-1 pr-3">{u.through ?? "—"}</td>
                     <td className="py-1 pr-3">{u.status}</td>
                     <td className="py-1 pr-3">{u.lastServiceDate ?? "—"}</td>

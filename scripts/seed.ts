@@ -1,9 +1,12 @@
 import "dotenv/config";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { ROOT_ADMIN_EMAIL } from "@/lib/auth/root-admin";
 
-const ADMIN_EMAIL = "shethdhruhi05@gmail.com";
-const TEMP_PASSWORD = "ChangeMe123!";
+// The owner account. The password is only the *initial* one — override it for a real deployment
+// with ROOT_ADMIN_PASSWORD, and change it from Settings after the first login.
+const ROOT_ADMIN_NAME = "Warehouse Admin";
+const ROOT_ADMIN_PASSWORD = process.env.ROOT_ADMIN_PASSWORD ?? "Warehouse@123";
 
 async function main() {
   await prisma.appSettings.upsert({
@@ -12,24 +15,30 @@ async function main() {
     create: { id: 1 },
   });
 
-  const existing = await prisma.user.findUnique({ where: { email: ADMIN_EMAIL } });
+  const existing = await prisma.user.findUnique({ where: { email: ROOT_ADMIN_EMAIL } });
   if (existing) {
-    console.log(`Admin user already exists: ${ADMIN_EMAIL}`);
+    // Never rewrite an existing password (that would silently reset the owner's credential on
+    // every deploy) — but do repair the role, since the owner must always be an admin.
+    if (existing.role !== "ADMIN") {
+      await prisma.user.update({ where: { id: existing.id }, data: { role: "ADMIN" } });
+      console.log(`Restored ADMIN role on ${ROOT_ADMIN_EMAIL}.`);
+    }
+    console.log(`Owner account already exists: ${ROOT_ADMIN_EMAIL}`);
     return;
   }
 
-  const passwordHash = await bcrypt.hash(TEMP_PASSWORD, 10);
+  const passwordHash = await bcrypt.hash(ROOT_ADMIN_PASSWORD, 10);
   await prisma.user.create({
     data: {
-      email: ADMIN_EMAIL,
+      email: ROOT_ADMIN_EMAIL,
       passwordHash,
-      name: "Dhruhi Sheth",
+      name: ROOT_ADMIN_NAME,
       role: "ADMIN",
     },
   });
 
-  console.log(`Created admin user ${ADMIN_EMAIL} with temporary password "${TEMP_PASSWORD}".`);
-  console.log("Log in and change this password from /settings once that page exists.");
+  console.log(`Created owner account ${ROOT_ADMIN_EMAIL} with password "${ROOT_ADMIN_PASSWORD}".`);
+  console.log("Log in and change this password from /settings.");
 }
 
 main()

@@ -108,8 +108,9 @@ export async function analyzeUpload(formData: FormData): Promise<AnalyzeResult> 
 export interface PreviewResult {
   stats: ParseStats;
   sampleUnits: Array<{
+    block: string | null;
+    flatNo: string | null;
     siteName: string | null;
-    contactInfo: string | null;
     through: string | null;
     status: string;
     lastServiceDate: string | null;
@@ -136,8 +137,9 @@ export async function previewSheet(
   const sampleUnits = units.slice(0, 5).map((u) => {
     const lastServiceDate = resolveLastServiceDate(u);
     return {
+      block: u.block,
+      flatNo: u.flatNo,
       siteName: u.siteName,
-      contactInfo: u.contactInfo,
       through: u.through,
       status: u.status,
       lastServiceDate: formatCalendarDate(lastServiceDate),
@@ -220,8 +222,9 @@ export async function commitUpload(
             sourceRowNumber: unit.sourceRowNumber,
             srNoRaw: unit.srNoRaw,
             block: unit.block,
+            flatNo: unit.flatNo,
+            address: unit.address,
             siteName: unit.siteName,
-            contactInfo: unit.contactInfo,
             hp: unit.hp,
             through: unit.through,
             type: unit.type,
@@ -240,6 +243,8 @@ export async function commitUpload(
             visits: {
               create: unit.visits.map((v) => ({
                 sequence: v.sequence,
+                // Dates on an uploaded sheet are visits that already happened.
+                status: "DONE" as const,
                 visitDate: v.visitDate,
                 rawText: v.rawText,
               })),

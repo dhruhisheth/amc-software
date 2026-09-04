@@ -10,9 +10,13 @@ datasource db {
   provider = "postgresql"
 }
 
+// Access levels, from most to least privileged. STAFF is deliberately "everything except
+// destroying data" — see src/lib/auth/permissions.ts, which is the single source of truth for
+// what each role may do; never re-derive these rules inline at a call site.
 enum Role {
   ADMIN
   STAFF
+  VIEWER
 }
 
 enum UnitStatus {
@@ -29,6 +33,7 @@ model User {
   createdAt      DateTime        @default(now())
   uploadLogs     UploadLog[]
   pendingUploads PendingUpload[]
+  amcOffers      AmcOffer[]
 }
 
 // Holds a just-uploaded workbook's raw bytes between the wizard's steps (mapping confirmation,
@@ -44,15 +49,22 @@ model PendingUpload {
 }
 
 model AppSettings {
-  id                         Int @id @default(1)
-  defaultServiceIntervalDays Int @default(90)
-  renewalAlertLeadDays       Int @default(30)
+  id                         Int    @id @default(1)
+  defaultServiceIntervalDays Int    @default(90)
+  renewalAlertLeadDays       Int    @default(30)
+  companyName                String @default("Dhruvisha HVAC Systems Pvt. Ltd.")
+  companyAddress             String @default("")
+  companyPhone               String @default("")
+  companyEmail               String @default("")
+  offerTaxPercent            Float  @default(18)
+  offerTermsText             String @default("")
 }
 
 model Project {
   id                          String      @id @default(cuid())
   name                        String
   normalizedName              String      @unique
+  address                     String?
   columnMapping               Json?
   headerHash                  String?
   serviceIntervalDaysOverride Int?
@@ -60,52 +72,187 @@ model Project {
   updatedAt                   DateTime    @updatedAt
   units                       Unit[]
   uploadLogs                  UploadLog[]
+  complaints                  Complaint[]
+  amcOffers                   AmcOffer[]
 }
 
 model Unit {
-  id                   String         @id @default(cuid())
-  projectId            String
-  project              Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  sourceRowNumber      Int
-  srNoRaw              String?
-  block                String?
-  siteName             String?
-  contactInfo          String?
-  hp                   Float?
-  through              String?
-  type                 String?
-  amcPeriodText        String?
-  amcPeriodStart       DateTime?
-  amcPeriodEnd         DateTime?
-  newAmcPeriodText     String?
-  newAmcPeriodStart    DateTime?
-  newAmcPeriodEnd      DateTime?
-  billNo               String?
-  remarks              String?
-  status               UnitStatus     @default(DUE)
-  statusManualOverride Boolean        @default(false)
-  lastServiceDate      DateTime?
-  nextServiceDueDate   DateTime?
-  createdAt            DateTime       @default(now())
-  updatedAt            DateTime       @updatedAt
-  visits               ServiceVisit[]
+  id                     String         @id @default(cuid())
+  projectId              String
+  project                Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sourceRowNumber        Int
+  srNoRaw                String?
+  block                  String?
+  flatNo                 String?
+  address                String?
+  siteName               String?
+  // Retained (and still populated by past uploads) but no longer surfaced anywhere in the UI,
+  // import mapping, or export — see the "delete Contact No." requirement. Kept as a column so
+  // existing numbers aren't destroyed and can be reinstated without data loss.
+  contactInfo            String?
+  hp                     Float?
+  through                String?
+  type                   String?
+  amcPeriodText          String?
+  amcPeriodStart         DateTime?
+  amcPeriodEnd           DateTime?
+  newAmcPeriodText       String?
+  newAmcPeriodStart      DateTime?
+  newAmcPeriodEnd        DateTime?
+  billNo                 String?
+  remarks                String?
+  status                 UnitStatus     @default(DUE)
+  statusManualOverride   Boolean        @default(false)
+  lastServiceDate        DateTime?
+  nextServiceDueDate     DateTime?
+  // Renewal is tracked separately from service: nextServiceDueDate is when the next visit is
+  // owed, renewalDueDateOverride is when the contract itself must be renewed. When null the
+  // renewal date falls back to the AMC period end — see resolveRenewalDueDate in lib/status.ts.
+  renewalDueDateOverride DateTime?
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+  visits                 ServiceVisit[]
+  complaints             Complaint[]
+  amcOffers              AmcOffer[]
 
   @@index([projectId])
   @@index([nextServiceDueDate])
   @@index([amcPeriodEnd])
   @@index([newAmcPeriodEnd])
+  @@index([renewalDueDateOverride])
+}
+
+enum VisitStatus {
+  DONE
+  PENDING
 }
 
 model ServiceVisit {
-  id        String    @id @default(cuid())
-  unitId    String
-  unit      Unit      @relation(fields: [unitId], references: [id], onDelete: Cascade)
-  sequence  Int
-  visitDate DateTime?
-  rawText   String?
-  createdAt DateTime  @default(now())
+  id            String      @id @default(cuid())
+  unitId        String
+  unit          Unit        @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  sequence      Int
+  // A DONE visit records visitDate (when it actually happened); a PENDING one records
+  // scheduledDate (when it is owed). The service-history view reports both against their date.
+  status        VisitStatus @default(DONE)
+  visitDate     DateTime?
+  scheduledDate DateTime?
+  technicianId  String?
+  technician    Technician? @relation(fields: [technicianId], references: [id])
+  notes         String?
+  rawText       String?
+  createdAt     DateTime    @default(now())
 
   @@index([unitId])
+  @@index([status])
+  @@index([technicianId])
+}
+
+model Technician {
+  id             String         @id @default(cuid())
+  name           String
+  normalizedName String         @unique
+  phone          String?
+  skills         String?
+  active         Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  complaints     Complaint[]
+  visits         ServiceVisit[]
+}
+
+enum ComplaintStatus {
+  OPEN
+  ASSIGNED
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum ComplaintPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model Complaint {
+  id              String            @id @default(cuid())
+  ticketNo        String            @unique
+  projectId       String?
+  project         Project?          @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  unitId          String?
+  unit            Unit?             @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  complainantName String?
+  contactNumber   String?
+  subject         String
+  description     String?
+  priority        ComplaintPriority @default(MEDIUM)
+  status          ComplaintStatus   @default(OPEN)
+  // The technician attending this complaint, name-wise.
+  technicianId    String?
+  technician      Technician?       @relation(fields: [technicianId], references: [id], onDelete: SetNull)
+  reportedAt      DateTime          @default(now())
+  attendedAt      DateTime?
+  resolvedAt      DateTime?
+  resolutionNotes String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([projectId])
+  @@index([unitId])
+  @@index([technicianId])
+  @@index([status])
+}
+
+enum OfferStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+model AmcOffer {
+  id              String         @id @default(cuid())
+  offerNo         String         @unique
+  projectId       String?
+  project         Project?       @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  // Set when the offer covers a single flat rather than the whole project — this is what makes
+  // offers generatable both project-wise and flat-wise.
+  unitId          String?
+  unit            Unit?          @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  customerName    String
+  customerAddress String?
+  offerDate       DateTime       @default(now())
+  validUntil      DateTime?
+  periodStart     DateTime?
+  periodEnd       DateTime?
+  taxPercent      Float          @default(18)
+  notes           String?
+  termsText       String?
+  status          OfferStatus    @default(DRAFT)
+  createdById     String
+  createdBy       User           @relation(fields: [createdById], references: [id])
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  items           AmcOfferItem[]
+
+  @@index([projectId])
+  @@index([unitId])
+  @@index([status])
+}
+
+model AmcOfferItem {
+  id          String   @id @default(cuid())
+  offerId     String
+  offer       AmcOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  sequence    Int
+  description String
+  hp          Float?
+  quantity    Int      @default(1)
+  unitRate    Float    @default(0)
+
+  @@index([offerId])
 }
 
 model UploadLog {

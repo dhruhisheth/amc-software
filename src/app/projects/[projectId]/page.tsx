@@ -1,16 +1,20 @@
 import Link from "next/link";
-import { formatCalendarDate } from "@/lib/date";
 import { notFound } from "next/navigation";
+import { formatCalendarDate } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
+import { requireView } from "@/lib/auth/guards";
+import { canDelete, canEdit } from "@/lib/auth/permissions";
 import {
   computeServiceBucket,
   computeRenewalBucket,
-  effectiveAmcEnd,
-  SERVICE_BUCKET_LABELS,
-  RENEWAL_BUCKET_LABELS,
+  resolveRenewalDueDate,
   type ServiceBucket,
   type RenewalBucket,
 } from "@/lib/status";
+import { ServiceBadge, RenewalBadge, UnitStatusBadge } from "@/components/Badges";
+import { PROJECT_TABLE_SERVICE_SLOTS, serviceDateSlots } from "@/lib/serviceHistory";
+import { EditProjectPanel } from "@/app/projects/ProjectForms";
+import AddUnitPanel from "./AddUnitPanel";
 
 const PAGE_SIZE = 25;
 
@@ -34,6 +38,10 @@ export default async function ProjectPage({
   params: Promise<{ projectId: string }>;
   searchParams: Promise<SearchParams>;
 }) {
+  const session = await requireView();
+  const editable = canEdit(session.user.role);
+  const deletable = canDelete(session.user.role);
+
   const { projectId } = await params;
   const sp = await searchParams;
 
@@ -46,25 +54,33 @@ export default async function ProjectPage({
   const statusFilter = typeof sp.status === "string" ? sp.status : "";
   const overdueOnly = sp.overdue === "1";
   const renewalOnly = sp.renewal === "1";
-  const sortKey = typeof sp.sort === "string" ? sp.sort : "siteName";
+  const sortKey = typeof sp.sort === "string" ? sp.sort : "flat";
   const requestedPage = Math.max(1, Number(sp.page) || 1);
 
-  const allUnits = await prisma.unit.findMany({ where: { projectId } });
+  const allUnits = await prisma.unit.findMany({
+    where: { projectId },
+    include: { visits: { orderBy: { sequence: "asc" } } },
+  });
   const now = new Date();
 
-  let rows = allUnits.map((unit) => ({
-    unit,
-    bucket: computeServiceBucket(unit.nextServiceDueDate, now) as ServiceBucket,
-    renewalBucket: computeRenewalBucket(effectiveAmcEnd(unit), now, appSettings.renewalAlertLeadDays) as RenewalBucket,
-    amcEnd: effectiveAmcEnd(unit),
-  }));
+  let rows = allUnits.map((unit) => {
+    const renewalDue = resolveRenewalDueDate(unit);
+    return {
+      unit,
+      bucket: computeServiceBucket(unit.nextServiceDueDate, now) as ServiceBucket,
+      renewalDue,
+      renewalBucket: computeRenewalBucket(renewalDue, now, appSettings.renewalAlertLeadDays) as RenewalBucket,
+      // The four service-date columns: an AMC year on the default 90-day interval is four
+      // visits, so four slots show a whole contract year across the row.
+      slots: serviceDateSlots(unit.visits),
+    };
+  });
 
   if (search) {
     const s = search.toLowerCase();
-    rows = rows.filter(
-      (r) =>
-        (r.unit.siteName ?? "").toLowerCase().includes(s) ||
-        (r.unit.contactInfo ?? "").toLowerCase().includes(s)
+    rows = rows.filter((r) =>
+      [r.unit.siteName, r.unit.block, r.unit.flatNo, r.unit.address, r.unit.through]
+        .some((field) => (field ?? "").toLowerCase().includes(s))
     );
   }
   if (statusFilter === "DUE" || statusFilter === "DONE") {
@@ -77,10 +93,19 @@ export default async function ProjectPage({
     if (sortKey === "nextDue") {
       return (a.unit.nextServiceDueDate?.getTime() ?? Infinity) - (b.unit.nextServiceDueDate?.getTime() ?? Infinity);
     }
-    if (sortKey === "amcEnd") {
-      return (a.amcEnd?.getTime() ?? Infinity) - (b.amcEnd?.getTime() ?? Infinity);
+    if (sortKey === "renewalDue") {
+      return (a.renewalDue?.getTime() ?? Infinity) - (b.renewalDue?.getTime() ?? Infinity);
     }
-    return (a.unit.siteName ?? "").localeCompare(b.unit.siteName ?? "");
+    if (sortKey === "lastService") {
+      return (b.unit.lastServiceDate?.getTime() ?? -Infinity) - (a.unit.lastServiceDate?.getTime() ?? -Infinity);
+    }
+    if (sortKey === "siteName") {
+      return (a.unit.siteName ?? "").localeCompare(b.unit.siteName ?? "");
+    }
+    // Default: block then flat, the order the sheets are actually read in.
+    const byBlock = (a.unit.block ?? "").localeCompare(b.unit.block ?? "", undefined, { numeric: true });
+    if (byBlock !== 0) return byBlock;
+    return (a.unit.flatNo ?? "").localeCompare(b.unit.flatNo ?? "", undefined, { numeric: true });
   });
 
   const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
@@ -90,17 +115,49 @@ export default async function ProjectPage({
   const sortLink = (key: string, label: string) => (
     <Link href={`?${buildQuery(sp, { sort: key, page: undefined })}`} className="hover:text-slate-900">
       {label}
+      {sortKey === key && " ↓"}
     </Link>
   );
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-8">
-      <div className="flex items-center justify-between">
+    <div className="mx-auto w-full max-w-7xl px-4 py-8">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">{project.name}</h1>
+          <Link href="/projects" className="text-sm text-slate-500 underline hover:text-slate-900">
+            ← All projects
+          </Link>
+          <h1 className="mt-2 text-xl font-semibold text-slate-900">{project.name}</h1>
+          {project.address && <p className="text-sm text-slate-500">{project.address}</p>}
           <p className="mt-1 text-sm text-slate-500">
-            {rows.length} of {allUnits.length} units shown
+            {rows.length} of {allUnits.length} flats shown
           </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href={`/history?projectId=${project.id}`}
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Service history
+          </Link>
+          <Link
+            href={`/offers/new?projectId=${project.id}`}
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Generate AMC offer
+          </Link>
+          {editable && (
+            <EditProjectPanel
+              projectId={project.id}
+              initial={{
+                name: project.name,
+                address: project.address ?? "",
+                serviceIntervalDaysOverride:
+                  project.serviceIntervalDaysOverride !== null ? String(project.serviceIntervalDaysOverride) : "",
+              }}
+              canDeleteProject={deletable}
+            />
+          )}
+          {editable && <AddUnitPanel projectId={project.id} />}
         </div>
       </div>
 
@@ -109,13 +166,13 @@ export default async function ProjectPage({
           {statusFilter && <input type="hidden" name="status" value={statusFilter} />}
           {overdueOnly && <input type="hidden" name="overdue" value="1" />}
           {renewalOnly && <input type="hidden" name="renewal" value="1" />}
-          {sortKey !== "siteName" && <input type="hidden" name="sort" value={sortKey} />}
+          {sortKey !== "flat" && <input type="hidden" name="sort" value={sortKey} />}
           <input
             type="text"
             name="q"
             defaultValue={search}
-            placeholder="Search site or contact..."
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm"
+            placeholder="Search block, flat, address, site..."
+            className="w-64 rounded-md border border-slate-300 px-3 py-1.5 text-sm"
           />
           <button type="submit" className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50">
             Search
@@ -135,61 +192,97 @@ export default async function ProjectPage({
         </div>
 
         <FilterLink sp={sp} overrides={{ overdue: overdueOnly ? undefined : "1", page: undefined }} active={overdueOnly}>
-          Overdue only
+          Service overdue only
         </FilterLink>
         <FilterLink sp={sp} overrides={{ renewal: renewalOnly ? undefined : "1", page: undefined }} active={renewalOnly}>
-          Renewals due
+          Renewals due only
         </FilterLink>
       </div>
 
       <div className="mt-4 overflow-x-auto rounded-lg border border-slate-200 bg-white">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-slate-200 text-left text-slate-500">
-              <th className="px-4 py-2">{sortLink("siteName", "Site")}</th>
-              <th className="px-4 py-2">Contact</th>
-              <th className="px-4 py-2">Through</th>
-              <th className="px-4 py-2">Status</th>
-              <th className="px-4 py-2">{sortLink("nextDue", "Next service")}</th>
-              <th className="px-4 py-2">{sortLink("amcEnd", "AMC end")}</th>
-              <th className="px-4 py-2"></th>
+            <tr className="text-left text-slate-500">
+              <th className="px-3 pt-2" rowSpan={2}>
+                {sortLink("flat", "Block / Flat")}
+              </th>
+              <th className="px-3 pt-2" rowSpan={2}>
+                Address
+              </th>
+              <th className="px-3 pt-2" rowSpan={2}>
+                {sortLink("siteName", "Site")}
+              </th>
+              <th className="px-3 pt-2 text-center" colSpan={PROJECT_TABLE_SERVICE_SLOTS}>
+                {sortLink("lastService", "Service dates")}
+              </th>
+              <th className="px-3 pt-2" rowSpan={2}>
+                {sortLink("nextDue", "Service due")}
+              </th>
+              <th className="px-3 pt-2" rowSpan={2}>
+                {sortLink("renewalDue", "Renewal due")}
+              </th>
+              <th className="px-3 pt-2" rowSpan={2}>
+                Status
+              </th>
+              <th className="px-3 pt-2" rowSpan={2}></th>
+            </tr>
+            <tr className="border-b border-slate-200 text-left text-xs font-normal text-slate-400">
+              {Array.from({ length: PROJECT_TABLE_SERVICE_SLOTS }, (_, i) => (
+                <th key={i} className="px-3 pb-2 font-normal">
+                  {i + 1}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            {pageRows.map(({ unit, bucket, renewalBucket, amcEnd }) => (
-              <tr key={unit.id} className="border-b border-slate-100 last:border-0">
-                <td className="px-4 py-2 font-medium text-slate-900">{unit.siteName ?? "—"}</td>
-                <td className="px-4 py-2 text-slate-500">{unit.contactInfo ?? "—"}</td>
-                <td className="px-4 py-2 text-slate-500">{unit.through ?? "—"}</td>
-                <td className="px-4 py-2">
-                  <StatusBadge status={unit.status} manualOverride={unit.statusManualOverride} />
+            {pageRows.map(({ unit, bucket, renewalBucket, renewalDue, slots }) => (
+              <tr key={unit.id} className="border-b border-slate-100 last:border-0 align-top">
+                <td className="px-3 py-2 font-medium text-slate-900">
+                  {unit.block ?? "—"}
+                  {unit.flatNo && <span className="text-slate-500"> / {unit.flatNo}</span>}
                 </td>
-                <td className="px-4 py-2">
-                  <BucketBadge bucket={bucket} label={SERVICE_BUCKET_LABELS[bucket]} />
+                <td className="px-3 py-2 text-slate-500">{unit.address ?? "—"}</td>
+                <td className="px-3 py-2 text-slate-700">{unit.siteName ?? "—"}</td>
+                {slots.map((slot, i) => (
+                  <td
+                    key={i}
+                    className={`px-3 py-2 text-xs ${
+                      slot?.status === "PENDING" ? "text-amber-600" : "text-slate-600"
+                    }`}
+                    title={slot?.status === "PENDING" ? "Scheduled, not yet done" : undefined}
+                  >
+                    {slot ? (formatCalendarDate(slot.date) ?? slot.rawText ?? "—") : "—"}
+                  </td>
+                ))}
+                <td className="px-3 py-2">
+                  <ServiceBadge bucket={bucket} />
                   {unit.nextServiceDueDate && (
-                    <span className="ml-1 text-xs text-slate-400">
+                    <div className="mt-0.5 text-xs text-slate-400">
                       {formatCalendarDate(unit.nextServiceDueDate)}
-                    </span>
+                    </div>
                   )}
                 </td>
-                <td className="px-4 py-2">
-                  <RenewalBadge bucket={renewalBucket} label={RENEWAL_BUCKET_LABELS[renewalBucket]} />
-                  {amcEnd && <span className="ml-1 text-xs text-slate-400">{formatCalendarDate(amcEnd)}</span>}
+                <td className="px-3 py-2">
+                  <RenewalBadge bucket={renewalBucket} />
+                  {renewalDue && <div className="mt-0.5 text-xs text-slate-400">{formatCalendarDate(renewalDue)}</div>}
                 </td>
-                <td className="px-4 py-2 text-right">
+                <td className="px-3 py-2">
+                  <UnitStatusBadge status={unit.status} manualOverride={unit.statusManualOverride} />
+                </td>
+                <td className="px-3 py-2 text-right">
                   <Link
                     href={`/projects/${projectId}/units/${unit.id}`}
                     className="text-slate-500 underline hover:text-slate-900"
                   >
-                    Edit
+                    {editable ? "Edit" : "View"}
                   </Link>
                 </td>
               </tr>
             ))}
             {pageRows.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-6 text-center text-slate-400">
-                  No units match these filters.
+                <td colSpan={7 + PROJECT_TABLE_SERVICE_SLOTS} className="px-4 py-6 text-center text-slate-400">
+                  No flats match these filters.
                 </td>
               </tr>
             )}
@@ -241,38 +334,4 @@ function FilterLink({
       {children}
     </Link>
   );
-}
-
-function StatusBadge({ status, manualOverride }: { status: string; manualOverride: boolean }) {
-  const toneClass = status === "DONE" ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-700";
-  return (
-    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${toneClass}`}>
-      {status}
-      {manualOverride && <span title="Manually set">*</span>}
-    </span>
-  );
-}
-
-function BucketBadge({ bucket, label }: { bucket: ServiceBucket; label: string }) {
-  const toneClass =
-    bucket === "OVERDUE"
-      ? "bg-red-100 text-red-700"
-      : bucket === "DUE_SOON"
-        ? "bg-amber-100 text-amber-700"
-        : bucket === "OK"
-          ? "bg-green-100 text-green-700"
-          : "bg-slate-100 text-slate-500";
-  return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${toneClass}`}>{label}</span>;
-}
-
-function RenewalBadge({ bucket, label }: { bucket: RenewalBucket; label: string }) {
-  const toneClass =
-    bucket === "EXPIRED"
-      ? "bg-red-100 text-red-700"
-      : bucket === "EXPIRING_SOON"
-        ? "bg-amber-100 text-amber-700"
-        : bucket === "OK"
-          ? "bg-green-100 text-green-700"
-          : "bg-slate-100 text-slate-500";
-  return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${toneClass}`}>{label}</span>;
 }

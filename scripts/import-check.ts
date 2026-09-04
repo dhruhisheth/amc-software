@@ -38,7 +38,8 @@ const SHEET1_POSITIONAL_FIELDS: ColumnMapping["fields"] = {
   srNo: 1,
   block: 2,
   siteName: 3,
-  contactInfo: 4,
+  // Column 4 is the sheet's contact number — deliberately left unmapped, since Contact No. was
+  // removed from the app's fields.
   through: 5,
   type: 6,
   amcPeriodText: 7,

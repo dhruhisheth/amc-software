@@ -1,23 +1,27 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import {
-  computeServiceBucket,
-  computeRenewalBucket,
-  effectiveAmcEnd,
-} from "@/lib/status";
+import { requireView } from "@/lib/auth/guards";
+import { computeServiceBucket, computeRenewalBucket, resolveRenewalDueDate } from "@/lib/status";
+import { isOpenComplaint } from "@/lib/complaints";
+import { Badge } from "@/components/Badges";
 
 export default async function Home() {
-  const [units, appSettings] = await Promise.all([
+  await requireView();
+
+  const [units, appSettings, complaints, pendingVisits] = await Promise.all([
     prisma.unit.findMany({
       select: {
         id: true,
         nextServiceDueDate: true,
         amcPeriodEnd: true,
         newAmcPeriodEnd: true,
+        renewalDueDateOverride: true,
         project: { select: { id: true, name: true } },
       },
     }),
     prisma.appSettings.upsert({ where: { id: 1 }, update: {}, create: { id: 1 } }),
+    prisma.complaint.findMany({ select: { status: true, technicianId: true } }),
+    prisma.serviceVisit.count({ where: { status: "PENDING" } }),
   ]);
 
   const now = new Date();
@@ -33,8 +37,9 @@ export default async function Home() {
 
   for (const unit of units) {
     const bucket = computeServiceBucket(unit.nextServiceDueDate, now);
+    // Renewal is read from the renewal due date, which is its own thing — not the service date.
     const renewalBucket = computeRenewalBucket(
-      effectiveAmcEnd(unit),
+      resolveRenewalDueDate(unit),
       now,
       appSettings.renewalAlertLeadDays
     );
@@ -58,15 +63,18 @@ export default async function Home() {
     byProject.set(unit.project.id, entry);
   }
 
+  const openComplaints = complaints.filter((c) => isOpenComplaint(c.status));
+  const unassignedComplaints = openComplaints.filter((c) => !c.technicianId);
+
   const projectRows = [...byProject.entries()].sort((a, b) => a[1].name.localeCompare(b[1].name));
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-slate-900">Dashboard</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Overview across all {units.length} tracked units in {byProject.size} projects.
+            Overview across all {units.length} tracked flats in {byProject.size} projects.
           </p>
         </div>
         <a
@@ -77,11 +85,29 @@ export default async function Home() {
         </a>
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard label="Total units" value={units.length} />
-        <StatCard label="Overdue for service" value={overdue} tone="danger" />
-        <StatCard label="Service due soon" value={dueSoon} tone="warning" />
-        <StatCard label="AMC renewals due" value={renewalExpired + renewalExpiringSoon} tone="warning" />
+      {/* Service and renewal are counted separately on purpose — they are two different due dates. */}
+      <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+        <StatCard label="Total flats" value={units.length} href="/projects" />
+        <StatCard label="Service overdue" value={overdue} tone="danger" href="/history" />
+        <StatCard label="Service due soon" value={dueSoon} tone="warning" href="/history" />
+        <StatCard
+          label="Renewals due"
+          value={renewalExpired + renewalExpiringSoon}
+          tone="warning"
+          href="/projects"
+        />
+        <StatCard label="Services pending" value={pendingVisits} tone="warning" href="/history" />
+        <StatCard
+          label="Open complaints"
+          value={openComplaints.length}
+          tone={unassignedComplaints.length > 0 ? "danger" : "warning"}
+          href="/complaints"
+          note={
+            unassignedComplaints.length > 0
+              ? `${unassignedComplaints.length} unassigned`
+              : undefined
+          }
+        />
       </div>
 
       <div className="mt-8">
@@ -91,10 +117,10 @@ export default async function Home() {
             <thead>
               <tr className="border-b border-slate-200 text-left text-slate-500">
                 <th className="px-4 py-2">Project</th>
-                <th className="px-4 py-2">Units</th>
-                <th className="px-4 py-2">Overdue</th>
-                <th className="px-4 py-2">Due soon</th>
-                <th className="px-4 py-2">Renewals</th>
+                <th className="px-4 py-2">Flats</th>
+                <th className="px-4 py-2">Service overdue</th>
+                <th className="px-4 py-2">Service due soon</th>
+                <th className="px-4 py-2">Renewals due</th>
                 <th className="px-4 py-2"></th>
               </tr>
             </thead>
@@ -113,7 +139,10 @@ export default async function Home() {
                     {row.renewals > 0 ? <Badge tone="warning">{row.renewals}</Badge> : row.renewals}
                   </td>
                   <td className="px-4 py-2 text-right">
-                    <Link href={`/projects/${projectId}`} className="text-slate-500 underline hover:text-slate-900">
+                    <Link
+                      href={`/projects/${projectId}`}
+                      className="text-slate-500 underline hover:text-slate-900"
+                    >
                       View
                     </Link>
                   </td>
@@ -122,7 +151,7 @@ export default async function Home() {
               {projectRows.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-4 py-6 text-center text-slate-400">
-                    No projects yet. Upload an Excel sheet to get started.
+                    No projects yet. Add one from Projects, or upload an Excel sheet.
                   </td>
                 </tr>
               )}
@@ -138,22 +167,25 @@ function StatCard({
   label,
   value,
   tone = "default",
+  href,
+  note,
 }: {
   label: string;
   value: number;
   tone?: "default" | "danger" | "warning";
+  href: string;
+  note?: string;
 }) {
   const toneClass =
     tone === "danger" ? "text-red-600" : tone === "warning" ? "text-amber-600" : "text-slate-900";
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
+    <Link
+      href={href}
+      className="rounded-lg border border-slate-200 bg-white p-4 hover:border-slate-300 hover:shadow-sm"
+    >
       <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</p>
       <p className={`mt-1 text-2xl font-semibold ${toneClass}`}>{value}</p>
-    </div>
+      {note && <p className="text-xs text-slate-400">{note}</p>}
+    </Link>
   );
-}
-
-function Badge({ children, tone }: { children: React.ReactNode; tone: "danger" | "warning" }) {
-  const toneClass = tone === "danger" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700";
-  return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${toneClass}`}>{children}</span>;
 }

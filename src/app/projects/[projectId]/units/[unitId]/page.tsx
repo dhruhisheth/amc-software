@@ -1,96 +1,138 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { formatCalendarDate } from "@/lib/date";
+import { requireView } from "@/lib/auth/guards";
+import { canDelete, canEdit } from "@/lib/auth/permissions";
+import { formatCalendarDate, toDateInputValue, todayUtcMidnight } from "@/lib/date";
+import { computeRenewalBucket, computeServiceBucket, resolveRenewalDueDate } from "@/lib/status";
+import { unitInputFromRecord } from "@/lib/units";
+import { ServiceBadge, RenewalBadge } from "@/components/Badges";
 import UnitEditForm from "./UnitEditForm";
+import ServiceHistoryPanel, { type VisitRow } from "./ServiceHistoryPanel";
+import DeleteUnitButton from "./DeleteUnitButton";
 
 export default async function UnitPage({
   params,
 }: {
   params: Promise<{ projectId: string; unitId: string }>;
 }) {
+  const session = await requireView();
+  const editable = canEdit(session.user.role);
+  const deletable = canDelete(session.user.role);
+
   const { projectId, unitId } = await params;
 
-  const unit = await prisma.unit.findUnique({
-    where: { id: unitId },
-    include: { project: true, visits: { orderBy: { sequence: "asc" } } },
-  });
+  const [unit, technicians, appSettings] = await Promise.all([
+    prisma.unit.findUnique({
+      where: { id: unitId },
+      include: {
+        project: true,
+        visits: { orderBy: { sequence: "asc" }, include: { technician: true } },
+      },
+    }),
+    prisma.technician.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
+    prisma.appSettings.upsert({ where: { id: 1 }, update: {}, create: { id: 1 } }),
+  ]);
   if (!unit || unit.projectId !== projectId) notFound();
 
+  const now = new Date();
+  const renewalDue = resolveRenewalDueDate(unit);
+  const serviceBucket = computeServiceBucket(unit.nextServiceDueDate, now);
+  const renewalBucket = computeRenewalBucket(renewalDue, now, appSettings.renewalAlertLeadDays);
+
+  const visitRows: VisitRow[] = unit.visits.map((v) => ({
+    id: v.id,
+    sequence: v.sequence,
+    status: v.status,
+    visitDate: formatCalendarDate(v.visitDate),
+    scheduledDate: formatCalendarDate(v.scheduledDate),
+    technicianId: v.technicianId,
+    technicianName: v.technician?.name ?? null,
+    notes: v.notes,
+    rawText: v.rawText,
+  }));
+
+  const heading = [unit.block, unit.flatNo].filter(Boolean).join(" / ") || unit.siteName || "Unnamed flat";
+
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 py-8">
+    <div className="mx-auto w-full max-w-5xl px-4 py-8">
       <Link href={`/projects/${projectId}`} className="text-sm text-slate-500 underline hover:text-slate-900">
         ← Back to {unit.project.name}
       </Link>
-      <h1 className="mt-2 text-xl font-semibold text-slate-900">{unit.siteName ?? "Unnamed unit"}</h1>
-      <p className="text-sm text-slate-500">Sr No: {unit.srNoRaw ?? "—"}</p>
+
+      <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold text-slate-900">{heading}</h1>
+          <p className="text-sm text-slate-500">
+            {unit.siteName ?? "—"}
+            {unit.address && ` · ${unit.address}`}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href={`/complaints/new?unitId=${unit.id}`}
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Log complaint
+          </Link>
+          <Link
+            href={`/offers/new?unitId=${unit.id}`}
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Generate AMC offer
+          </Link>
+          {deletable && <DeleteUnitButton unitId={unit.id} />}
+        </div>
+      </div>
+
+      {/* Service and renewal are shown as two separate cards on purpose — they are two different
+          due dates and are meant to be read independently. */}
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="rounded-lg border border-slate-200 bg-white p-4">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Service due</h2>
+          <div className="mt-2 flex items-center gap-2">
+            <ServiceBadge bucket={serviceBucket} />
+            <span className="text-lg font-semibold text-slate-900">
+              {formatCalendarDate(unit.nextServiceDueDate) ?? "—"}
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-slate-500">
+            Last serviced {formatCalendarDate(unit.lastServiceDate) ?? "never"}
+          </p>
+        </div>
+        <div className="rounded-lg border border-slate-200 bg-white p-4">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Renewal due</h2>
+          <div className="mt-2 flex items-center gap-2">
+            <RenewalBadge bucket={renewalBucket} />
+            <span className="text-lg font-semibold text-slate-900">
+              {formatCalendarDate(renewalDue) ?? "—"}
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-slate-500">
+            {unit.renewalDueDateOverride
+              ? "Set by hand"
+              : `From AMC period${unit.newAmcPeriodText ? " (renewed)" : ""}`}
+          </p>
+        </div>
+      </div>
 
       <div className="mt-6">
         <UnitEditForm
-          unit={{
-            id: unit.id,
-            siteName: unit.siteName ?? "",
-            block: unit.block ?? "",
-            contactInfo: unit.contactInfo ?? "",
-            hp: unit.hp !== null ? String(unit.hp) : "",
-            through: unit.through ?? "",
-            type: unit.type ?? "",
-            billNo: unit.billNo ?? "",
-            remarks: unit.remarks ?? "",
-            status: unit.status,
-          }}
+          unitId={unit.id}
+          readOnly={!editable}
+          initial={unitInputFromRecord(unit)}
         />
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="rounded-lg border border-slate-200 bg-white p-4">
-          <h2 className="text-sm font-semibold text-slate-700">AMC Period</h2>
-          <p className="mt-1 text-sm text-slate-600">{unit.amcPeriodText ?? "—"}</p>
-          {unit.amcPeriodStart && unit.amcPeriodEnd && (
-            <p className="text-xs text-slate-400">
-              Parsed: {formatCalendarDate(unit.amcPeriodStart)} –{" "}
-              {formatCalendarDate(unit.amcPeriodEnd)}
-            </p>
-          )}
-        </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-4">
-          <h2 className="text-sm font-semibold text-slate-700">New AMC Period</h2>
-          <p className="mt-1 text-sm text-slate-600">{unit.newAmcPeriodText ?? "—"}</p>
-          {unit.newAmcPeriodStart && unit.newAmcPeriodEnd && (
-            <p className="text-xs text-slate-400">
-              Parsed: {formatCalendarDate(unit.newAmcPeriodStart)} –{" "}
-              {formatCalendarDate(unit.newAmcPeriodEnd)}
-            </p>
-          )}
-        </div>
-      </div>
-
-      <div className="mt-6 rounded-lg border border-slate-200 bg-white p-4">
-        <h2 className="text-sm font-semibold text-slate-700">Service visit history</h2>
-        {unit.visits.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-400">No recorded visits.</p>
-        ) : (
-          <table className="mt-2 w-full text-left text-sm">
-            <thead>
-              <tr className="text-slate-400">
-                <th className="pb-1 pr-4">#</th>
-                <th className="pb-1 pr-4">Date</th>
-                <th className="pb-1">Raw value</th>
-              </tr>
-            </thead>
-            <tbody>
-              {unit.visits.map((v) => (
-                <tr key={v.id} className="border-t border-slate-100">
-                  <td className="py-1 pr-4 text-slate-500">{v.sequence}</td>
-                  <td className="py-1 pr-4">
-                    {v.visitDate ? formatCalendarDate(v.visitDate) : <span className="text-slate-400">unparsed</span>}
-                  </td>
-                  <td className="py-1 text-slate-500">{v.rawText ?? "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+      <div className="mt-6">
+        <ServiceHistoryPanel
+          unitId={unit.id}
+          visits={visitRows}
+          technicians={technicians.map((t) => ({ id: t.id, name: t.name }))}
+          canEditVisits={editable}
+          canDeleteVisits={deletable}
+          today={toDateInputValue(todayUtcMidnight())}
+        />
       </div>
     </div>
   );

@@ -4,8 +4,9 @@
 export type CanonicalField =
   | "srNo"
   | "block"
+  | "flatNo"
+  | "address"
   | "siteName"
-  | "contactInfo"
   | "hp"
   | "through"
   | "type"
@@ -18,9 +19,10 @@ export type CanonicalField =
 
 export const CANONICAL_FIELD_LABELS: Record<CanonicalField, string> = {
   srNo: "Sr No",
-  block: "Block",
+  block: "Block No",
+  flatNo: "Flat No",
+  address: "Address",
   siteName: "Site Name",
-  contactInfo: "Contact Info",
   hp: "HP",
   through: "Through (vendor)",
   type: "Type",
@@ -32,4 +34,7 @@ export const CANONICAL_FIELD_LABELS: Record<CanonicalField, string> = {
   status: "Status (DUE/DONE)",
 };
 
+// Contact No. was deliberately removed from the importable fields: it is no longer shown or
+// edited anywhere, so a sheet's contact column is simply left unmapped. The Unit.contactInfo
+// column still holds what past uploads wrote — see the note on it in prisma/schema.prisma.
 export const CANONICAL_FIELDS: CanonicalField[] = Object.keys(CANONICAL_FIELD_LABELS) as CanonicalField[];

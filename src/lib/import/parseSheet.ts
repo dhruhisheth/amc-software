@@ -13,8 +13,9 @@ export interface ParsedUnit {
   sourceRowNumber: number;
   srNoRaw: string | null;
   block: string | null;
+  flatNo: string | null;
+  address: string | null;
   siteName: string | null;
-  contactInfo: string | null;
   hp: number | null;
   through: string | null;
   type: string | null;
@@ -105,8 +106,9 @@ export function parseSheetToUnits(worksheet: ExcelJS.Worksheet, mapping: ColumnM
       sourceRowNumber: rowIndex,
       srNoRaw: toStringOrNull(get("srNo")),
       block: toStringOrNull(get("block")),
+      flatNo: toStringOrNull(get("flatNo")),
+      address: toStringOrNull(get("address")),
       siteName: toStringOrNull(get("siteName")),
-      contactInfo: toStringOrNull(get("contactInfo")),
       hp: toNumberOrNull(get("hp")),
       through: toStringOrNull(get("through")),
       type: toStringOrNull(get("type")),

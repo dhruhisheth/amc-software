@@ -10,12 +10,21 @@ multi-user system.
   Column layout is auto-detected on first upload; re-uploads reuse the saved mapping automatically.
 - **Dashboard**: overdue/due-soon service alerts and AMC renewal alerts, computed automatically from
   a configurable service interval (default 90 days).
-- **Per-project unit tables**: search, filter (status / overdue / renewals due), sort, paginate.
-- **In-app editing**: update contact info, status, remarks, and mark a service visit done without
-  re-uploading Excel.
+- **Per-project flat tables**: block no, flat no, address and four service-date columns, with
+  search, filter (status / overdue / renewals due), sort and pagination.
+- **Separate service and renewal due dates**: when the next *visit* is owed and when the *contract*
+  must be renewed are tracked and shown independently — neither is derived from the other.
+- **Add and edit by hand**: projects and individual flats can be created and edited in the app,
+  not only imported from Excel.
+- **Complaints**: a main tab for logging complaints, assigning the technician attending them by
+  name, and tracking them through to resolution.
+- **AMC offers**: generate a printable offer project-wise or flat-wise, with full offer history.
+- **Service history**: how much service is done vs. pending, and on which date, per flat and
+  across projects.
 - **Export**: download the current database state as a formatted `.xlsx`.
-- **Accounts**: admin/staff roles. Admins manage uploads, settings, and team accounts; staff can view
-  and edit unit records.
+- **Accounts**: three roles — **Admin** (all access), **Staff** (add and edit anything, but never
+  delete), and **View only** (read-only). The owner account
+  (`warehouse@dhruvishahvac.com`) is always an admin and cannot be demoted or removed.
 
 ## Tech stack
 
@@ -38,8 +47,8 @@ Requires Node 20+ and a PostgreSQL database.
    ```bash
    npx prisma migrate deploy
    ```
-4. Seed the first admin account (edit `scripts/seed.ts` to change the email/temp password first if
-   needed):
+4. Seed the owner account (`warehouse@dhruvishahvac.com`; set `ROOT_ADMIN_PASSWORD` to override the
+   initial password):
    ```bash
    npm run seed
    ```
@@ -77,9 +86,8 @@ have free tiers sufficient for a small internal tool.
    DATABASE_URL="<production-url>" npx prisma migrate deploy
    DATABASE_URL="<production-url>" npm run seed
    ```
-6. Deploy. Log in with the seeded admin account and change the temporary password from Settings
-   (once a change-password flow exists — for now, update it directly via the database or a new seed
-   run).
+6. Deploy. Log in with the seeded owner account and change the temporary password (for now, update
+   it directly via the database or a new seed run — there is no in-app change-password flow yet).
 
 ### Notes for future deploys
 
@@ -88,6 +96,8 @@ have free tiers sufficient for a small internal tool.
   of RC.
 - The Prisma client uses the `@prisma/adapter-pg` driver adapter (required in Prisma 7 for SQL
   providers) — `DATABASE_URL` must point at a real Postgres-compatible endpoint.
+- Roles are read from the NextAuth JWT, which is minted at login. Changing someone's role takes
+  effect the next time they sign in.
 - AMC/service dates are stored as UTC-midnight instants and always formatted/computed via
   `src/lib/date.ts`'s helpers — see the comment there before adding new date display or arithmetic
   code, to avoid reintroducing timezone-shift bugs.

@@ -16,12 +16,12 @@ export function computeServiceBucket(
 }
 
 export function computeRenewalBucket(
-  amcEnd: Date | null,
+  renewalDueDate: Date | null,
   now: Date = new Date(),
   leadDays = 30
 ): RenewalBucket {
-  if (!amcEnd) return "UNKNOWN";
-  const diffDays = (amcEnd.getTime() - now.getTime()) / DAY_MS;
+  if (!renewalDueDate) return "UNKNOWN";
+  const diffDays = (renewalDueDate.getTime() - now.getTime()) / DAY_MS;
   if (diffDays < 0) return "EXPIRED";
   if (diffDays <= leadDays) return "EXPIRING_SOON";
   return "OK";
@@ -33,6 +33,28 @@ export function effectiveAmcEnd(unit: { amcPeriodEnd: Date | null; newAmcPeriodE
   const dates = [unit.amcPeriodEnd, unit.newAmcPeriodEnd].filter((d): d is Date => d !== null);
   if (dates.length === 0) return null;
   return new Date(Math.max(...dates.map((d) => d.getTime())));
+}
+
+export interface RenewalDateSource {
+  amcPeriodEnd: Date | null;
+  newAmcPeriodEnd: Date | null;
+  renewalDueDateOverride: Date | null;
+}
+
+/**
+ * The renewal due date — deliberately a different thing from the service due date.
+ *
+ * Service due date  = when the next maintenance VISIT is owed (Unit.nextServiceDueDate, driven
+ *                     by the last visit + the service interval).
+ * Renewal due date  = when the CONTRACT itself must be renewed. It defaults to the end of the
+ *                     effective AMC period, but can be set by hand per flat when the renewal
+ *                     falls on a date the AMC period text doesn't imply.
+ *
+ * The two move independently: servicing a flat never changes its renewal date, and renewing a
+ * contract never changes when the next visit is owed.
+ */
+export function resolveRenewalDueDate(unit: RenewalDateSource): Date | null {
+  return unit.renewalDueDateOverride ?? effectiveAmcEnd(unit);
 }
 
 export const SERVICE_BUCKET_LABELS: Record<ServiceBucket, string> = {
