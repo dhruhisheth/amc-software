@@ -9,7 +9,10 @@ import {
   updateUserRole,
   deleteUser,
   updateCompanySettings,
+  updateReminderSettings,
+  runRemindersNow,
   type CompanySettingsInput,
+  type ReminderSettingsInput,
 } from "./actions";
 import { Field } from "@/components/form";
 import { ROLES, ROLE_DESCRIPTIONS, ROLE_LABELS, type Role } from "@/lib/auth/permissions";
@@ -375,7 +378,43 @@ export function CompanySettingsForm({ initial }: { initial: CompanySettingsInput
            
           />
         </Field>
-        <Field label="Default tax %">
+        <Field label="HSN / SAC code">
+          <input value={form.offerHsnCode} onChange={(e) => set("offerHsnCode", e.target.value)} />
+        </Field>
+        <Field label="Offer signatory">
+          <input value={form.offerSignatory} onChange={(e) => set("offerSignatory", e.target.value)} />
+        </Field>
+        <Field label="City line">
+          <input value={form.offerCityLine} onChange={(e) => set("offerCityLine", e.target.value)} />
+        </Field>
+        <Field label="State line">
+          <input value={form.offerStateLine} onChange={(e) => set("offerStateLine", e.target.value)} />
+        </Field>
+        <Field label="Contract period terms">
+          <input
+            value={form.offerContractTerm}
+            onChange={(e) => set("offerContractTerm", e.target.value)}
+          />
+        </Field>
+        <div className="span-all">
+          <Field label="Covering sentence" hint="The paragraph under &quot;Dear Sir&quot; on the offer.">
+            <textarea
+              rows={2}
+              value={form.offerIntroText}
+              onChange={(e) => set("offerIntroText", e.target.value)}
+            />
+          </Field>
+        </div>
+        <div className="span-all">
+          <Field label="Footer note">
+            <textarea
+              rows={2}
+              value={form.offerFooterNote}
+              onChange={(e) => set("offerFooterNote", e.target.value)}
+            />
+          </Field>
+        </div>
+        <Field label="Default GST rate %">
           <input
             type="number"
             step="0.01"
@@ -400,6 +439,124 @@ export function CompanySettingsForm({ initial }: { initial: CompanySettingsInput
           {pending ? "Saving..." : "Save"}
         </button>
         {saved && <span className="success-text">Saved.</span>}
+        {error && <span className="error-text">{error}</span>}
+      </div>
+    </div>
+  );
+}
+
+export function ReminderSettingsForm({
+  initial,
+  emailReady,
+  smsReady,
+}: {
+  initial: ReminderSettingsInput;
+  emailReady: boolean;
+  smsReady: boolean;
+}) {
+  const router = useRouter();
+  const [form, setForm] = useState<ReminderSettingsInput>(initial);
+  const [pending, startTransition] = useTransition();
+  const [running, startRun] = useTransition();
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [runSummary, setRunSummary] = useState<string | null>(null);
+
+  function set<K extends keyof ReminderSettingsInput>(key: K, value: ReminderSettingsInput[K]) {
+    setForm((f) => ({ ...f, [key]: value }));
+    setSaved(false);
+  }
+
+  function handleSave() {
+    setError(null);
+    startTransition(async () => {
+      try {
+        await updateReminderSettings(form);
+        setSaved(true);
+        router.refresh();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to save.");
+      }
+    });
+  }
+
+  function handleRunNow() {
+    setError(null);
+    setRunSummary(null);
+    startRun(async () => {
+      try {
+        const r = await runRemindersNow();
+        setRunSummary(
+          `Raised ${r.raised}, sent ${r.sent}, skipped ${r.skipped}, failed ${r.failed}.` +
+            (r.messages.length > 0 ? ` ${r.messages[0]}` : "")
+        );
+        router.refresh();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Reminder run failed.");
+      }
+    });
+  }
+
+  return (
+    <div className="card">
+      <h3>Service &amp; renewal reminders</h3>
+      <p>
+        Four services a year are scheduled from each flat&apos;s AMC start date, one every three
+        months. A reminder is raised {form.reminderLeadDays || 0} days before each service and
+        before each contract renewal, and sent to the addresses below once a day.
+      </p>
+
+      <div className="form-grid cols-3">
+        <Field label="Reminder email">
+          <input
+            type="email"
+            value={form.reminderEmail}
+            onChange={(e) => set("reminderEmail", e.target.value)}
+            placeholder="(none)"
+          />
+        </Field>
+        <Field label="Reminder phone">
+          <input
+            value={form.reminderPhone}
+            onChange={(e) => set("reminderPhone", e.target.value)}
+            placeholder="+91..."
+          />
+        </Field>
+        <Field label="Days ahead">
+          <input
+            type="number"
+            min="0"
+            value={form.reminderLeadDays}
+            onChange={(e) => set("reminderLeadDays", e.target.value)}
+          />
+        </Field>
+      </div>
+
+      <div className="reminder-status">
+        <span className={emailReady ? "badge success" : "badge warning"}>
+          Email {emailReady ? "ready" : "not configured"}
+        </span>
+        <span className={smsReady ? "badge success" : "badge warning"}>
+          SMS {smsReady ? "ready" : "not configured"}
+        </span>
+      </div>
+      {(!emailReady || !smsReady) && (
+        <p className="field-hint">
+          Reminders are still raised and listed under Service History whatever is configured. To
+          have them actually delivered, set RESEND_API_KEY and REMINDER_FROM_EMAIL for email, or
+          TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_FROM_NUMBER for SMS.
+        </p>
+      )}
+
+      <div className="form-actions">
+        <button onClick={handleSave} disabled={pending} className="primary">
+          {pending ? "Saving..." : "Save"}
+        </button>
+        <button onClick={handleRunNow} disabled={running}>
+          {running ? "Running..." : "Run reminders now"}
+        </button>
+        {saved && <span className="success-text">Saved.</span>}
+        {runSummary && <span className="muted">{runSummary}</span>}
         {error && <span className="error-text">{error}</span>}
       </div>
     </div>

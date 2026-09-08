@@ -7,6 +7,7 @@ import { requireAdmin } from "@/lib/auth/guards";
 import type { Role } from "@/lib/auth/permissions";
 import { isRootAdminEmail, normalizeEmail } from "@/lib/auth/root-admin";
 import { addCalendarDays } from "@/lib/date";
+import { runReminders } from "@/lib/reminders";
 import { Prisma } from "@/generated/prisma/client";
 
 export async function updateAppSettings(defaultServiceIntervalDays: number, renewalAlertLeadDays: number): Promise<void> {
@@ -44,6 +45,13 @@ export interface CompanySettingsInput {
   companyEmail: string;
   offerTaxPercent: string;
   offerTermsText: string;
+  offerHsnCode: string;
+  offerSignatory: string;
+  offerCityLine: string;
+  offerStateLine: string;
+  offerIntroText: string;
+  offerContractTerm: string;
+  offerFooterNote: string;
 }
 
 /** The letterhead and defaults that every generated AMC offer is built from. */
@@ -61,6 +69,13 @@ export async function updateCompanySettings(input: CompanySettingsInput): Promis
       companyEmail: input.companyEmail.trim(),
       offerTaxPercent: Number.isFinite(taxPercent) ? taxPercent : 0,
       offerTermsText: input.offerTermsText.trim(),
+      offerHsnCode: input.offerHsnCode.trim(),
+      offerSignatory: input.offerSignatory.trim(),
+      offerCityLine: input.offerCityLine.trim(),
+      offerStateLine: input.offerStateLine.trim(),
+      offerIntroText: input.offerIntroText.trim(),
+      offerContractTerm: input.offerContractTerm.trim(),
+      offerFooterNote: input.offerFooterNote.trim(),
     },
   });
 
@@ -163,4 +178,47 @@ export async function deleteUser(userId: string): Promise<void> {
     prisma.user.delete({ where: { id: userId } }),
   ]);
   revalidatePath("/settings");
+}
+
+export interface ReminderSettingsInput {
+  reminderEmail: string;
+  reminderPhone: string;
+  reminderLeadDays: string;
+}
+
+/** Where service and renewal reminders go, and how far ahead they are raised. */
+export async function updateReminderSettings(input: ReminderSettingsInput): Promise<void> {
+  await requireAdmin();
+
+  const leadDays = Number(input.reminderLeadDays);
+
+  await prisma.appSettings.update({
+    where: { id: 1 },
+    data: {
+      reminderEmail: input.reminderEmail.trim(),
+      reminderPhone: input.reminderPhone.trim(),
+      reminderLeadDays: Number.isFinite(leadDays) && leadDays >= 0 ? Math.round(leadDays) : 14,
+    },
+  });
+
+  revalidatePath("/settings");
+  revalidatePath("/history");
+}
+
+/**
+ * Raise and deliver reminders immediately, rather than waiting for the nightly cron. Useful for
+ * checking that email/SMS credentials actually work.
+ */
+export async function runRemindersNow(): Promise<{
+  raised: number;
+  sent: number;
+  skipped: number;
+  failed: number;
+  messages: string[];
+}> {
+  await requireAdmin();
+  const result = await runReminders();
+  revalidatePath("/settings");
+  revalidatePath("/history");
+  return result;
 }

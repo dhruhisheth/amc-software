@@ -629,27 +629,181 @@ th.numeric {
 }
 
 /* ------------------------------------------------------------------------- offer print */
+/* Laid out to match the company's existing AMC offer document, so a generated offer prints as
+   the same page customers already receive. */
 
 .offer-doc {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 24px;
+  font-size: 13px;
 }
 
-.offer-doc-header {
+.offer-doc p {
+  margin: 0;
+  color: var(--text);
+}
+
+.offer-letterhead {
+  text-align: center;
+  border-bottom: 2px solid var(--text);
+  padding-bottom: 10px;
+}
+
+.offer-company {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.offer-doc-title {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.offer-company-address {
+  color: var(--text-muted) !important;
+  font-size: 12px;
+}
+
+.offer-meta {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 16px;
+  margin-top: 12px;
 }
 
+.offer-meta > div {
+  max-width: 48%;
+  min-width: 220px;
+}
+
+.offer-meta-label {
+  color: var(--text-muted) !important;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.offer-meta-strong {
+  font-weight: 600;
+}
+
+.offer-intro {
+  margin-top: 12px !important;
+  line-height: 1.5;
+}
+
+.offer-items {
+  margin-top: 14px;
+  border: 1px solid var(--border);
+}
+
+.offer-items th,
+.offer-items td {
+  border: 1px solid var(--border);
+  padding: 6px 8px;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.offer-items thead th {
+  background: var(--bg);
+  font-weight: 600;
+  text-transform: none;
+  font-size: 12px;
+}
+
+.offer-system-heading,
+.offer-period-label {
+  font-weight: 600;
+}
+
+.offer-hsn {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.offer-net td {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.offer-words {
+  margin-top: 10px !important;
+}
+
+.offer-blocks {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 16px;
+}
+
+.offer-blocks > div {
+  min-width: 240px;
+}
+
+.offer-payment-label {
+  display: block;
+  margin-top: 12px;
+}
+
+.offer-payment {
+  margin-top: 4px;
+  border: 1px solid var(--border);
+  width: 260px;
+}
+
+.offer-payment td {
+  border: 1px solid var(--border);
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.offer-payment-blank {
+  width: 110px;
+}
+
+.offer-signoff {
+  text-align: right;
+}
+
+.offer-signature-line {
+  margin-top: 44px !important;
+  border-top: 1px solid var(--text);
+  padding-top: 4px;
+  font-size: 12px;
+  color: var(--text-muted) !important;
+}
+
+.offer-note {
+  margin-top: 10px !important;
+  font-size: 12px;
+}
+
+.offer-footer-note {
+  margin-top: 14px !important;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+  font-size: 11px;
+  color: var(--text-muted) !important;
+}
+
+.offer-print-actions {
+  margin-top: 16px;
+}
+
+/* The running totals under the line-item editor. */
 .offer-totals {
   display: flex;
   justify-content: flex-end;
+  margin-top: 12px;
 }
 
 .offer-totals dl {
@@ -661,34 +815,21 @@ th.numeric {
   font-size: 14px;
 }
 
+.offer-totals dd {
+  margin: 0;
+}
+
 .offer-totals .row {
   display: flex;
   justify-content: space-between;
+  gap: 12px;
 }
 
 .offer-totals .row.total {
   border-top: 1px solid var(--border);
   padding-top: 4px;
   font-weight: 600;
-  font-size: 16px;
   color: var(--text);
-}
-
-.offer-signature {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-  margin-top: 32px;
-}
-
-.offer-signature-line {
-  border-top: 1px solid var(--border);
-  padding-top: 4px;
-  font-size: 12px;
-  color: var(--text-muted);
-  min-width: 180px;
-  text-align: right;
 }
 
 .whitespace-preserve {
@@ -696,13 +837,36 @@ th.numeric {
 }
 
 @media print {
-  .no-print {
+  .no-print,
+  .app-header {
     display: none !important;
   }
 
+  /* The document must print on white with black text whatever theme the screen is using. */
   .offer-doc {
     border: 0;
     padding: 0;
+    background: #ffffff;
+    color: #000000;
+  }
+
+  .offer-doc p,
+  .offer-items th,
+  .offer-items td,
+  .offer-payment td {
+    color: #000000;
+  }
+
+  .offer-items th,
+  .offer-items td,
+  .offer-payment,
+  .offer-payment td,
+  .offer-items {
+    border-color: #000000;
+  }
+
+  .offer-items thead th {
+    background: #ffffff;
   }
 }
 
@@ -757,4 +921,23 @@ a.card.project-card:hover {
 .role-legend .role-name {
   width: 96px;
   flex: 0 0 auto;
+}
+
+/* Both attending technicians are assignable inline from the complaints list. */
+.assign-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 160px;
+}
+
+.assign-slots select {
+  font-size: 13px;
+  padding: 4px 8px;
+}
+
+.reminder-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }

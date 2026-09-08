@@ -24,6 +24,8 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    "/((?!login|api/auth|_next/static|_next/image|favicon.ico).*)",
+    // api/cron is excluded because it is called by Vercel's scheduler, not a signed-in user; it
+    // authenticates itself with CRON_SECRET instead.
+    "/((?!login|api/auth|api/cron|_next/static|_next/image|favicon.ico).*)",
   ],
 };

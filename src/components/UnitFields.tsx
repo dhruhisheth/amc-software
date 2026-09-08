@@ -103,70 +103,41 @@ export function UnitFields({
       </div>
 
       <div>
-        <SectionHeading>Service dates &amp; renewal</SectionHeading>
+        <SectionHeading>AMC contract</SectionHeading>
         <div className="form-grid cols-3">
-          <Field label="Last service date">
+          <Field label="Start AMC date">
             <input
               type="date"
               disabled={disabled}
-              value={value.lastServiceDate}
-              onChange={(e) => set("lastServiceDate", e.target.value)}
-             
+              value={value.amcStartDate}
+              onChange={(e) => set("amcStartDate", e.target.value)}
+            />
+          </Field>
+          <Field label="End AMC date">
+            <input
+              type="date"
+              disabled={disabled}
+              value={value.amcEndDate}
+              onChange={(e) => set("amcEndDate", e.target.value)}
             />
           </Field>
           <Field
-            label="Service due date"
-            hint="When the next visit is owed. Left blank, it is derived from the last service date + the service interval."
+            label="New AMC period"
+            hint="The renewed contract's period, when there is one."
           >
-            <input
-              type="date"
-              disabled={disabled}
-              value={value.nextServiceDueDate}
-              onChange={(e) => set("nextServiceDueDate", e.target.value)}
-             
-            />
-          </Field>
-          <Field
-            label="Renewal due date"
-            hint="When the contract itself must be renewed — separate from the service due date. Blank falls back to the AMC period end."
-          >
-            <input
-              type="date"
-              disabled={disabled}
-              value={value.renewalDueDate}
-              onChange={(e) => set("renewalDueDate", e.target.value)}
-             
-            />
-          </Field>
-          <Field label="AMC period">
-            <input
-              disabled={disabled}
-              value={value.amcPeriodText}
-              onChange={(e) => set("amcPeriodText", e.target.value)}
-             
-              placeholder="e.g. 01.04.2025 to 31.03.2026"
-            />
-          </Field>
-          <Field label="New AMC period">
             <input
               disabled={disabled}
               value={value.newAmcPeriodText}
               onChange={(e) => set("newAmcPeriodText", e.target.value)}
-             
             />
           </Field>
-          <Field label="Status">
-            <select
-              disabled={disabled}
-              value={value.status}
-              onChange={(e) => set("status", e.target.value as "DUE" | "DONE")}
-             
-            >
-              <option value="DUE">DUE</option>
-              <option value="DONE">DONE</option>
-            </select>
-          </Field>
         </div>
+        <p className="field-hint">
+          Four services a year are scheduled automatically from these dates, one every three
+          months. Service dates, the next service due date and the DUE/DONE status all come from
+          the service history below — they are not typed in here. The renewal date is the AMC end
+          date.
+        </p>
       </div>
 
       <Field label="Remarks">

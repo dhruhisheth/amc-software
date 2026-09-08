@@ -1,4 +1,4 @@
-import { addCalendarDays, parseDateInput, toDateInputValue } from "@/lib/date";
+import { formatCalendarDate, parseDateInput, toDateInputValue } from "@/lib/date";
 import { emptyToNull, parseNumber } from "@/lib/forms";
 import { parseAmcPeriodRange } from "@/lib/import/parsers";
 
@@ -16,12 +16,10 @@ export interface UnitInput {
   type: string;
   through: string;
   billNo: string;
-  lastServiceDate: string;
-  nextServiceDueDate: string;
-  renewalDueDate: string;
-  amcPeriodText: string;
+  /** The contract's own start and end. Everything else about scheduling derives from these. */
+  amcStartDate: string;
+  amcEndDate: string;
   newAmcPeriodText: string;
-  status: "DUE" | "DONE";
   remarks: string;
 }
 
@@ -34,12 +32,9 @@ export const EMPTY_UNIT_INPUT: UnitInput = {
   type: "",
   through: "",
   billNo: "",
-  lastServiceDate: "",
-  nextServiceDueDate: "",
-  renewalDueDate: "",
-  amcPeriodText: "",
+  amcStartDate: "",
+  amcEndDate: "",
   newAmcPeriodText: "",
-  status: "DUE",
   remarks: "",
 };
 
@@ -53,12 +48,9 @@ export interface UnitRecord {
   type: string | null;
   through: string | null;
   billNo: string | null;
-  lastServiceDate: Date | null;
-  nextServiceDueDate: Date | null;
-  renewalDueDateOverride: Date | null;
-  amcPeriodText: string | null;
+  amcPeriodStart: Date | null;
+  amcPeriodEnd: Date | null;
   newAmcPeriodText: string | null;
-  status: "DUE" | "DONE";
   remarks: string | null;
 }
 
@@ -72,12 +64,9 @@ export function unitInputFromRecord(unit: UnitRecord): UnitInput {
     type: unit.type ?? "",
     through: unit.through ?? "",
     billNo: unit.billNo ?? "",
-    lastServiceDate: toDateInputValue(unit.lastServiceDate),
-    nextServiceDueDate: toDateInputValue(unit.nextServiceDueDate),
-    renewalDueDate: toDateInputValue(unit.renewalDueDateOverride),
-    amcPeriodText: unit.amcPeriodText ?? "",
+    amcStartDate: toDateInputValue(unit.amcPeriodStart),
+    amcEndDate: toDateInputValue(unit.amcPeriodEnd),
     newAmcPeriodText: unit.newAmcPeriodText ?? "",
-    status: unit.status,
     remarks: unit.remarks ?? "",
   };
 }
@@ -85,17 +74,15 @@ export function unitInputFromRecord(unit: UnitRecord): UnitInput {
 /**
  * Turn form values into stored columns.
  *
- * The two due dates are deliberately independent. `nextServiceDueDate` (when the next visit is
- * owed) falls back to last service + the project's interval when left blank;
- * `renewalDueDateOverride` (when the contract must be renewed) stays null when blank and falls
- * back to the AMC period end at read time — see resolveRenewalDueDate in lib/status.ts. Neither
- * is ever derived from the other.
+ * The form no longer carries the last-service, service-due, renewal-due or status fields: all
+ * four are derived rather than typed. Service visits (and therefore the last-service and
+ * service-due dates, and the DUE/DONE status) come from the service history; the renewal date is
+ * the AMC end date. What a person enters is the contract itself — when it starts and ends.
  */
-export function unitDataFromInput(input: UnitInput, intervalDays: number) {
-  const amcPeriod = parseAmcPeriodRange(input.amcPeriodText);
+export function unitDataFromInput(input: UnitInput) {
+  const amcPeriodStart = parseDateInput(input.amcStartDate);
+  const amcPeriodEnd = parseDateInput(input.amcEndDate);
   const newAmcPeriod = parseAmcPeriodRange(input.newAmcPeriodText);
-  const lastServiceDate = parseDateInput(input.lastServiceDate);
-  const explicitServiceDue = parseDateInput(input.nextServiceDueDate);
 
   return {
     block: emptyToNull(input.block),
@@ -107,18 +94,22 @@ export function unitDataFromInput(input: UnitInput, intervalDays: number) {
     through: emptyToNull(input.through),
     billNo: emptyToNull(input.billNo),
     remarks: emptyToNull(input.remarks),
-    status: input.status,
-    lastServiceDate,
-    nextServiceDueDate:
-      explicitServiceDue ?? (lastServiceDate ? addCalendarDays(lastServiceDate, intervalDays) : null),
-    renewalDueDateOverride: parseDateInput(input.renewalDueDate),
-    amcPeriodText: emptyToNull(input.amcPeriodText),
-    amcPeriodStart: amcPeriod.start,
-    amcPeriodEnd: amcPeriod.end,
+    amcPeriodStart,
+    amcPeriodEnd,
+    // Kept in step with the two dates so the export and any imported sheet still read the same.
+    amcPeriodText: formatAmcPeriodText(amcPeriodStart, amcPeriodEnd),
     newAmcPeriodText: emptyToNull(input.newAmcPeriodText),
     newAmcPeriodStart: newAmcPeriod.start,
     newAmcPeriodEnd: newAmcPeriod.end,
   };
+}
+
+/** The "01.02.2025 to 31.01.2026" wording the sheets and the printed offer both use. */
+export function formatAmcPeriodText(start: Date | null, end: Date | null): string | null {
+  if (!start && !end) return null;
+  const from = formatCalendarDate(start, "DD.MM.YYYY") ?? "?";
+  const to = formatCalendarDate(end, "DD.MM.YYYY") ?? "?";
+  return `${from} to ${to}`;
 }
 
 /** A flat's display label, for lists that reference a flat rather than show its whole row. */

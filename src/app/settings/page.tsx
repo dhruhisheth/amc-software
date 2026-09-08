@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth/guards";
 import { ROLE_DESCRIPTIONS, ROLE_LABELS, ROLES } from "@/lib/auth/permissions";
 import { isRootAdminEmail } from "@/lib/auth/root-admin";
+import { emailConfigured, smsConfigured } from "@/lib/notify";
 import {
   IntervalSettingsForm,
   ProjectIntervalRow,
@@ -9,6 +10,7 @@ import {
   UserRoleToggle,
   DeleteUserButton,
   CompanySettingsForm,
+  ReminderSettingsForm,
 } from "./SettingsForms";
 
 export default async function SettingsPage() {
@@ -40,6 +42,23 @@ export default async function SettingsPage() {
           companyEmail: appSettings.companyEmail,
           offerTaxPercent: String(appSettings.offerTaxPercent),
           offerTermsText: appSettings.offerTermsText,
+          offerHsnCode: appSettings.offerHsnCode,
+          offerSignatory: appSettings.offerSignatory,
+          offerCityLine: appSettings.offerCityLine,
+          offerStateLine: appSettings.offerStateLine,
+          offerIntroText: appSettings.offerIntroText,
+          offerContractTerm: appSettings.offerContractTerm,
+          offerFooterNote: appSettings.offerFooterNote,
+        }}
+      />
+
+      <ReminderSettingsForm
+        emailReady={emailConfigured()}
+        smsReady={smsConfigured()}
+        initial={{
+          reminderEmail: appSettings.reminderEmail,
+          reminderPhone: appSettings.reminderPhone,
+          reminderLeadDays: String(appSettings.reminderLeadDays),
         }}
       />
 

@@ -30,6 +30,9 @@ async function allocateTicketNo(tx: Prisma.TransactionClient, now: Date): Promis
 
 function complaintDataFromInput(input: ComplaintInput) {
   const status = input.status;
+  if (input.technicianId && input.technicianId === input.technician2Id) {
+    throw new Error("The two attending technicians must be different people.");
+  }
   const attendedAt = parseDateInput(input.attendedAt);
   const resolvedAt = parseDateInput(input.resolvedAt);
 
@@ -42,6 +45,7 @@ function complaintDataFromInput(input: ComplaintInput) {
     description: emptyToNull(input.description),
     priority: input.priority,
     technicianId: emptyToNull(input.technicianId),
+    technician2Id: emptyToNull(input.technician2Id),
     status,
     // Stamp the milestone dates from the status when they weren't filled in by hand, so the
     // complaint history has real dates without the user having to remember to set them.
@@ -102,24 +106,38 @@ export async function updateComplaint(complaintId: string, input: ComplaintInput
   revalidatePath("/");
 }
 
-/** Assign (or reassign) the technician attending a complaint, straight from the list. */
-export async function assignTechnician(complaintId: string, technicianId: string): Promise<void> {
+/**
+ * Assign (or reassign) one of the two attending technicians, straight from the list.
+ * `slot` 1 is the lead technician, 2 the second.
+ */
+export async function assignTechnician(
+  complaintId: string,
+  technicianId: string,
+  slot: 1 | 2 = 1
+): Promise<void> {
   await requireEdit();
 
   const complaint = await prisma.complaint.findUniqueOrThrow({
     where: { id: complaintId },
-    select: { status: true, attendedAt: true },
+    select: { status: true, attendedAt: true, technicianId: true, technician2Id: true },
   });
   const assigned = emptyToNull(technicianId);
+
+  const other = slot === 1 ? complaint.technician2Id : complaint.technicianId;
+  if (assigned && assigned === other) {
+    throw new Error("That technician is already the other person attending this complaint.");
+  }
+
+  const anyAssigned = slot === 1 ? !!assigned || !!other : !!other || !!assigned;
 
   await prisma.complaint.update({
     where: { id: complaintId },
     data: {
-      technicianId: assigned,
+      ...(slot === 1 ? { technicianId: assigned } : { technician2Id: assigned }),
       // Assigning someone moves an untouched complaint out of OPEN; a complaint already being
       // worked on or finished keeps the status it has.
-      status: assigned && complaint.status === "OPEN" ? "ASSIGNED" : complaint.status,
-      attendedAt: assigned ? (complaint.attendedAt ?? todayUtcMidnight()) : complaint.attendedAt,
+      status: anyAssigned && complaint.status === "OPEN" ? "ASSIGNED" : complaint.status,
+      attendedAt: anyAssigned ? (complaint.attendedAt ?? todayUtcMidnight()) : complaint.attendedAt,
     },
   });
 

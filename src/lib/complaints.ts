@@ -12,8 +12,11 @@ export interface ComplaintInput {
   subject: string;
   description: string;
   priority: ComplaintPriority;
-  /** The technician attending this complaint — the "name wise" assignment from the notes. */
+  /**
+   * The technicians attending this complaint, by name. Two attend: a lead and a second.
+   */
   technicianId: string;
+  technician2Id: string;
   status: ComplaintStatus;
   attendedAt: string;
   resolvedAt: string;
@@ -29,6 +32,7 @@ export const EMPTY_COMPLAINT_INPUT: ComplaintInput = {
   description: "",
   priority: "MEDIUM",
   technicianId: "",
+  technician2Id: "",
   status: "OPEN",
   attendedAt: "",
   resolvedAt: "",
@@ -77,4 +81,16 @@ export function nextTicketSerial(latestTicketNo: string | null): number {
   if (!latestTicketNo) return 1;
   const serial = Number(latestTicketNo.split("-").pop());
   return Number.isFinite(serial) ? serial + 1 : 1;
+}
+
+/** The complaint's attending technicians, in order, skipping empty slots. */
+export function attendingTechnicians(
+  complaint: {
+    technician?: { name: string } | null;
+    technician2?: { name: string } | null;
+  }
+): string[] {
+  return [complaint.technician?.name, complaint.technician2?.name].filter(
+    (name): name is string => !!name
+  );
 }

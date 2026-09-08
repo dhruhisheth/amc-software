@@ -5,8 +5,8 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireDelete, requireEdit } from "@/lib/auth/guards";
 import { emptyToNull, normalizeName, parseNumber, requiredText } from "@/lib/forms";
-import { effectiveIntervalDays } from "@/lib/serviceInterval";
 import { unitDataFromInput, type UnitInput } from "@/lib/units";
+import { resyncUnit } from "@/lib/unitSync";
 import { Prisma } from "@/generated/prisma/client";
 
 /* ------------------------------------------------------------------ projects (project-wise) */
@@ -99,8 +99,6 @@ export async function deleteProject(projectId: string): Promise<void> {
 export async function createUnit(projectId: string, input: UnitInput): Promise<string> {
   await requireEdit();
 
-  const intervalDays = await effectiveIntervalDays(projectId);
-
   // sourceRowNumber orders flats within a project and comes from the Excel row for imported
   // ones. A hand-added flat has no row, so it goes after everything currently there.
   const last = await prisma.unit.findFirst({
@@ -113,9 +111,12 @@ export async function createUnit(projectId: string, input: UnitInput): Promise<s
     data: {
       projectId,
       sourceRowNumber: (last?.sourceRowNumber ?? 0) + 1,
-      ...unitDataFromInput(input, intervalDays),
+      ...unitDataFromInput(input),
     },
   });
+
+  // Lay down the four quarterly visits and the derived dates for the new flat.
+  await resyncUnit(unit.id);
 
   revalidatePath(`/projects/${projectId}`);
   revalidatePath("/");

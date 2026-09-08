@@ -51,7 +51,6 @@ export default async function NewOfferPage({
     return {
       description: [unitLabel(u), u.type].filter(Boolean).join(" — "),
       hp: u.hp !== null ? String(u.hp) : "",
-      quantity: "1",
       unitRate: "",
     };
   }
@@ -60,7 +59,14 @@ export default async function NewOfferPage({
     ? [lineFor(unit)]
     : project && project.units.length > 0
       ? project.units.map(lineFor)
-      : [{ description: "Annual maintenance contract", hp: "", quantity: "1", unitRate: "" }];
+      : [
+          {
+            description:
+              "Comprehensive Annual Maintenance Contract of Airconditioning Installed at Your Premises.",
+            hp: "",
+            unitRate: "",
+          },
+        ];
 
   const scope = unit ? "flat" : project ? "project" : null;
 
@@ -69,6 +75,10 @@ export default async function NewOfferPage({
     unitId: unit?.id ?? "",
     customerName: unit?.siteName ?? project?.name ?? "",
     customerAddress: unit?.address ?? project?.address ?? "",
+    siteAddress: unit?.address ?? project?.address ?? "",
+    systemHeading: unit?.type ?? "",
+    hsnCode: appSettings.offerHsnCode,
+    contractTerm: appSettings.offerContractTerm,
     offerDate: toDateInputValue(todayUtcMidnight()),
     validUntil: "",
     periodStart: "",

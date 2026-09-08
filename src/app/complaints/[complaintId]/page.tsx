@@ -23,7 +23,7 @@ export default async function ComplaintPage({
   const [complaint, options] = await Promise.all([
     prisma.complaint.findUnique({
       where: { id: complaintId },
-      include: { project: true, unit: true, technician: true },
+      include: { project: true, unit: true, technician: true, technician2: true },
     }),
     loadPickerOptions(),
   ]);
@@ -31,10 +31,12 @@ export default async function ComplaintPage({
 
   // A technician who has since been deactivated still needs to appear, or reopening the form
   // would silently unassign them.
-  const technicians =
-    complaint.technician && !options.technicians.some((t) => t.id === complaint.technicianId)
-      ? [...options.technicians, { id: complaint.technician.id, name: `${complaint.technician.name} (inactive)` }]
-      : options.technicians;
+  const technicians = [...options.technicians];
+  for (const assigned of [complaint.technician, complaint.technician2]) {
+    if (assigned && !technicians.some((t) => t.id === assigned.id)) {
+      technicians.push({ id: assigned.id, name: `${assigned.name} (inactive)` });
+    }
+  }
 
   return (
     <div className="app-content narrow">
@@ -98,6 +100,7 @@ export default async function ComplaintPage({
             description: complaint.description ?? "",
             priority: complaint.priority,
             technicianId: complaint.technicianId ?? "",
+            technician2Id: complaint.technician2Id ?? "",
             status: complaint.status,
             attendedAt: toDateInputValue(complaint.attendedAt),
             resolvedAt: toDateInputValue(complaint.resolvedAt),

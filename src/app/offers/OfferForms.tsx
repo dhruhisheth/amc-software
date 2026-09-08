@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Field, SectionHeading } from "@/components/form";
-import { OFFER_STATUSES, computeOfferTotals, formatCurrency } from "@/lib/offer";
+import { OFFER_STATUSES, computeOfferTotals, formatCurrency, lineAmount } from "@/lib/offer";
 import { OFFER_STATUS_LABELS } from "@/components/Badges";
 import type { OfferStatus } from "@/generated/prisma/enums";
 import { createOffer, deleteOffer, updateOffer, type OfferInput, type OfferItemInput } from "./actions";
@@ -13,7 +13,7 @@ export interface ProjectOption {
   name: string;
 }
 
-const EMPTY_ITEM: OfferItemInput = { description: "", hp: "", quantity: "1", unitRate: "" };
+const EMPTY_ITEM: OfferItemInput = { description: "", hp: "", unitRate: "" };
 
 export function OfferForm({
   mode,
@@ -52,7 +52,7 @@ export function OfferForm({
       computeOfferTotals(
         form.items
           .filter((i) => i.description.trim())
-          .map((i) => ({ quantity: Number(i.quantity) || 0, unitRate: Number(i.unitRate) || 0 })),
+          .map((i) => ({ hp: Number(i.hp) || 0, unitRate: Number(i.unitRate) || 0 })),
         Number(form.taxPercent) || 0
       ),
     [form.items, form.taxPercent]
@@ -203,18 +203,17 @@ export function OfferForm({
             <table>
               <thead>
                 <tr className="section-label">
-                  <th className="pb-1 pr-2">Description</th>
-                  <th className="w-20 pb-1 pr-2">HP</th>
-                  <th className="w-20 pb-1 pr-2">Qty</th>
-                  <th className="w-32 pb-1 pr-2">Rate</th>
-                  <th className="w-32 pb-1 pr-2 text-right">Amount</th>
-                  <th className="w-8 pb-1"></th>
+                  <th>Description</th>
+                  <th>HP</th>
+                  <th>Rate/HP</th>
+                  <th className="numeric">Grand Total</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
                 {form.items.map((item, i) => (
                   <tr key={i}>
-                    <td className="pr-2 align-top">
+                    <td>
                       <input
                         disabled={readOnly}
                         value={item.description}
@@ -222,7 +221,7 @@ export function OfferForm({
                        
                       />
                     </td>
-                    <td className="pr-2 align-top">
+                    <td>
                       <input
                         disabled={readOnly}
                         value={item.hp}
@@ -230,17 +229,7 @@ export function OfferForm({
                        
                       />
                     </td>
-                    <td className="pr-2 align-top">
-                      <input
-                        type="number"
-                        min="1"
-                        disabled={readOnly}
-                        value={item.quantity}
-                        onChange={(e) => setItem(i, { quantity: e.target.value })}
-                       
-                      />
-                    </td>
-                    <td className="pr-2 align-top">
+                    <td>
                       <input
                         type="number"
                         step="0.01"
@@ -251,7 +240,9 @@ export function OfferForm({
                       />
                     </td>
                     <td className="numeric">
-                      {formatCurrency((Number(item.quantity) || 0) * (Number(item.unitRate) || 0))}
+                      {formatCurrency(
+                        lineAmount({ hp: Number(item.hp) || 0, unitRate: Number(item.unitRate) || 0 })
+                      )}
                     </td>
                     <td className="pt-3 align-top">
                       {!readOnly && form.items.length > 1 && (
@@ -278,11 +269,11 @@ export function OfferForm({
                 <dd>{formatCurrency(totals.subtotal)}</dd>
               </div>
               <div className="row">
-                <dt className="muted">Tax ({form.taxPercent || 0}%)</dt>
+                <dt className="muted">GST rate {form.taxPercent || 0}%</dt>
                 <dd>{formatCurrency(totals.tax)}</dd>
               </div>
               <div className="row total">
-                <dt>Total</dt>
+                <dt>Net amount</dt>
                 <dd>{formatCurrency(totals.total)}</dd>
               </div>
             </dl>

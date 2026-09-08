@@ -30,7 +30,7 @@ export default async function HistoryPage({
   const statusFilter = param(sp, "status");
   const technicianFilter = param(sp, "technician");
 
-  const [projects, technicians, units] = await Promise.all([
+  const [projects, technicians, units, reminders] = await Promise.all([
     prisma.project.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.technician.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.unit.findMany({
@@ -40,6 +40,12 @@ export default async function HistoryPage({
         project: { select: { id: true, name: true } },
         visits: { orderBy: { sequence: "asc" }, include: { technician: true } },
       },
+    }),
+    prisma.reminder.findMany({
+      where: projectFilter ? { unit: { projectId: projectFilter } } : {},
+      orderBy: { dueDate: "asc" },
+      take: 50,
+      include: { unit: { include: { project: { select: { name: true } } } } },
     }),
   ]);
 
@@ -139,7 +145,60 @@ export default async function HistoryPage({
         </button>
       </form>
 
-      <h2 className="section-label">Per flat</h2>
+      <span className="section-label">Reminders ({reminders.length})</span>
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Due</th>
+              <th>What</th>
+              <th>Flat</th>
+              <th>Project</th>
+              <th>Status</th>
+              <th>Detail</th>
+            </tr>
+          </thead>
+          <tbody>
+            {reminders.map((reminder) => (
+              <tr key={reminder.id}>
+                <td>{formatCalendarDate(reminder.dueDate)}</td>
+                <td>{reminder.kind === "SERVICE_DUE" ? "Service" : "Renewal"}</td>
+                <td>{unitLabel(reminder.unit)}</td>
+                <td className="muted">{reminder.unit.project.name}</td>
+                <td>
+                  <Badge
+                    tone={
+                      reminder.status === "SENT"
+                        ? "success"
+                        : reminder.status === "FAILED"
+                          ? "danger"
+                          : reminder.status === "SKIPPED"
+                            ? "warning"
+                            : "neutral"
+                    }
+                  >
+                    {reminder.status}
+                  </Badge>
+                </td>
+                <td className="cell-sub">
+                  {reminder.sentAt
+                    ? `Sent ${formatCalendarDate(reminder.sentAt)} via ${reminder.channel ?? "—"}`
+                    : (reminder.error ?? "Waiting to send")}
+                </td>
+              </tr>
+            ))}
+            {reminders.length === 0 && (
+              <tr>
+                <td colSpan={6} className="empty-state">
+                  Nothing due inside the reminder window yet.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <span className="section-label">Per flat</span>
       <div className="table-wrap">
         <table>
           <thead>

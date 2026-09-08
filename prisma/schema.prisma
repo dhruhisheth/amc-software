@@ -58,6 +58,21 @@ model AppSettings {
   companyEmail               String @default("")
   offerTaxPercent            Float  @default(18)
   offerTermsText             String @default("")
+
+  // The fixed wording and details of the printed AMC offer, taken from the company's existing
+  // offer document so a generated offer matches what customers already receive.
+  offerHsnCode      String @default("995469")
+  offerSignatory    String @default("Mr. Dharmesh Sheth")
+  offerCityLine     String @default("Ahmedabad")
+  offerStateLine    String @default("Gujarat")
+  offerIntroText    String @default("Please find herewith our most competitive Annual Maintenance Contract offer for comprehensive and four services in one year and any breakdown.")
+  offerContractTerm String @default("One year from the date of PO and Payment")
+  offerFooterNote   String @default("Please note that all machines will be checked & repaired on chargeable basis before taking this into AMC.")
+
+  // Where service and renewal reminders are sent. Both are optional; a blank channel is skipped.
+  reminderEmail    String @default("")
+  reminderPhone    String @default("+919099177770")
+  reminderLeadDays Int    @default(14)
 }
 
 model Project {
@@ -114,6 +129,7 @@ model Unit {
   visits                 ServiceVisit[]
   complaints             Complaint[]
   amcOffers              AmcOffer[]
+  reminders              Reminder[]
 
   @@index([projectId])
   @@index([nextServiceDueDate])
@@ -157,7 +173,8 @@ model Technician {
   active         Boolean        @default(true)
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
-  complaints     Complaint[]
+  complaints     Complaint[]    @relation("ComplaintLeadTechnician")
+  complaints2    Complaint[]    @relation("ComplaintSecondTechnician")
   visits         ServiceVisit[]
 }
 
@@ -188,9 +205,12 @@ model Complaint {
   description     String?
   priority        ComplaintPriority @default(MEDIUM)
   status          ComplaintStatus   @default(OPEN)
-  // The technician attending this complaint, name-wise.
+  // The technicians attending this complaint, name-wise. Two of them attend, so there are two
+  // named slots rather than one — `technician` is the lead, `technician2` the second.
   technicianId    String?
-  technician      Technician?       @relation(fields: [technicianId], references: [id], onDelete: SetNull)
+  technician      Technician?       @relation("ComplaintLeadTechnician", fields: [technicianId], references: [id], onDelete: SetNull)
+  technician2Id   String?
+  technician2     Technician?       @relation("ComplaintSecondTechnician", fields: [technician2Id], references: [id], onDelete: SetNull)
   reportedAt      DateTime          @default(now())
   attendedAt      DateTime?
   resolvedAt      DateTime?
@@ -201,6 +221,7 @@ model Complaint {
   @@index([projectId])
   @@index([unitId])
   @@index([technicianId])
+  @@index([technician2Id])
   @@index([status])
 }
 
@@ -223,6 +244,13 @@ model AmcOffer {
   unit            Unit?          @relation(fields: [unitId], references: [id], onDelete: SetNull)
   customerName    String
   customerAddress String?
+  // Printed as "Site Address:" on the offer, separately from the customer's postal address.
+  siteAddress     String?
+  // The equipment heading above the line items, e.g. "LG MAKE VRF SYSTEMS".
+  systemHeading   String?
+  hsnCode         String?
+  // Free text under "Contract Period", e.g. "One year from the date of PO and Payment".
+  contractTerm    String?
   offerDate       DateTime       @default(now())
   validUntil      DateTime?
   periodStart     DateTime?
@@ -253,6 +281,42 @@ model AmcOfferItem {
   unitRate    Float    @default(0)
 
   @@index([offerId])
+}
+
+enum ReminderKind {
+  SERVICE_DUE
+  RENEWAL_DUE
+}
+
+enum ReminderStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED
+}
+
+/**
+ * One reminder that a flat's service or renewal is coming up.
+ * Rows are created by the scheduler rather than by hand, and the unique key on
+ * (unitId, kind, dueDate) is what stops the same reminder being raised — or sent — twice when
+ * the scheduler runs repeatedly.
+ */
+model Reminder {
+  id        String         @id @default(cuid())
+  unitId    String
+  unit      Unit           @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  kind      ReminderKind
+  dueDate   DateTime
+  status    ReminderStatus @default(PENDING)
+  channel   String?
+  sentAt    DateTime?
+  error     String?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@unique([unitId, kind, dueDate])
+  @@index([status])
+  @@index([dueDate])
 }
 
 model UploadLog {

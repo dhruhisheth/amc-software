@@ -6,14 +6,14 @@ import { prisma } from "@/lib/prisma";
 import { requireDelete, requireEdit } from "@/lib/auth/guards";
 import { emptyToNull, requiredText } from "@/lib/forms";
 import { parseDateInput } from "@/lib/date";
-import { buildOfferNo, nextOfferSerial, offerNoPrefix } from "@/lib/offer";
+import { buildOfferNo, nextOfferSerial, offerNoPrefix, offerNoSuffix } from "@/lib/offer";
 import type { OfferStatus } from "@/generated/prisma/enums";
 import { Prisma } from "@/generated/prisma/client";
 
 export interface OfferItemInput {
   description: string;
   hp: string;
-  quantity: string;
+  /** Rate per HP. The line's amount is HP x this, as on the company's offer document. */
   unitRate: string;
 }
 
@@ -22,6 +22,10 @@ export interface OfferInput {
   unitId: string;
   customerName: string;
   customerAddress: string;
+  siteAddress: string;
+  systemHeading: string;
+  hsnCode: string;
+  contractTerm: string;
   offerDate: string;
   validUntil: string;
   periodStart: string;
@@ -39,7 +43,7 @@ export interface OfferInput {
  */
 async function allocateOfferNo(tx: Prisma.TransactionClient, date: Date): Promise<string> {
   const latest = await tx.amcOffer.findFirst({
-    where: { offerNo: { startsWith: offerNoPrefix(date) } },
+    where: { offerNo: { startsWith: offerNoPrefix(), endsWith: offerNoSuffix(date) } },
     orderBy: { offerNo: "desc" },
     select: { offerNo: true },
   });
@@ -49,17 +53,17 @@ async function allocateOfferNo(tx: Prisma.TransactionClient, date: Date): Promis
 function itemRows(items: OfferItemInput[]) {
   return items
     .filter((item) => item.description.trim().length > 0)
-    .map((item, index) => ({
-      sequence: index + 1,
-      description: item.description.trim(),
-      hp: item.hp.trim() ? Number(item.hp) : null,
-      quantity: Number(item.quantity) || 1,
-      unitRate: Number(item.unitRate) || 0,
-    }))
-    .map((row) => ({
-      ...row,
-      hp: row.hp !== null && Number.isFinite(row.hp) ? row.hp : null,
-    }));
+    .map((item, index) => {
+      const hp = item.hp.trim() ? Number(item.hp) : null;
+      return {
+        sequence: index + 1,
+        description: item.description.trim(),
+        hp: hp !== null && Number.isFinite(hp) ? hp : null,
+        // The document has no quantity column; the column is kept at 1 for existing rows.
+        quantity: 1,
+        unitRate: Number(item.unitRate) || 0,
+      };
+    });
 }
 
 function offerScalarData(input: OfferInput) {
@@ -69,6 +73,10 @@ function offerScalarData(input: OfferInput) {
     unitId: emptyToNull(input.unitId),
     customerName: requiredText(input.customerName, "Customer name"),
     customerAddress: emptyToNull(input.customerAddress),
+    siteAddress: emptyToNull(input.siteAddress),
+    systemHeading: emptyToNull(input.systemHeading),
+    hsnCode: emptyToNull(input.hsnCode),
+    contractTerm: emptyToNull(input.contractTerm),
     offerDate: parseDateInput(input.offerDate) ?? new Date(),
     validUntil: parseDateInput(input.validUntil),
     periodStart: parseDateInput(input.periodStart),

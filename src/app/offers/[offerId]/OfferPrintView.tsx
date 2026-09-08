@@ -1,6 +1,6 @@
 "use client";
 
-import { formatCurrency } from "@/lib/offer";
+import { amountInWords, formatCurrency, lineAmount } from "@/lib/offer";
 import type { OfferTotals } from "@/lib/offer";
 
 interface CompanyDetails {
@@ -8,34 +8,42 @@ interface CompanyDetails {
   address: string;
   phone: string;
   email: string;
+  signatory: string;
+  cityLine: string;
+  stateLine: string;
+  introText: string;
+  footerNote: string;
 }
 
 interface OfferDetails {
   offerNo: string;
   offerDate: string;
-  validUntil: string | null;
-  periodStart: string | null;
-  periodEnd: string | null;
   customerName: string;
   customerAddress: string | null;
-  scope: string | null;
+  siteAddress: string | null;
+  systemHeading: string | null;
+  hsnCode: string | null;
+  contractTerm: string | null;
+  amcPeriodText: string | null;
+  taxPercent: number;
   notes: string | null;
   termsText: string | null;
-  taxPercent: number;
-  preparedBy: string;
 }
 
 interface OfferItemRow {
   sequence: number;
   description: string;
   hp: number | null;
-  quantity: number;
   unitRate: number;
 }
 
 /**
- * The offer document itself. Printing the page (or saving it as a PDF) yields exactly this —
- * `print:hidden` on everything else in the page keeps the app chrome out of the output.
+ * The AMC offer document, laid out to match the company's existing offer (the LA MARINA
+ * B1-901 sheet): letterhead, To/Site Address, the covering sentence, a
+ * Description / HP / Rate per HP / Grand Total table, Sub Total, GST, Net Amount, the amount in
+ * words, contract period, payment block and signature lines.
+ *
+ * Printing the page yields exactly this — everything else on the page is `.no-print`.
  */
 export default function OfferPrintView({
   company,
@@ -50,109 +58,148 @@ export default function OfferPrintView({
 }) {
   return (
     <div className="offer-doc">
-      <div className="offer-doc-header">
-        <div>
-          <h2>{company.name}</h2>
-          {company.address && <p className="cell-sub">{company.address}</p>}
-          <p className="cell-sub">
-            {[company.phone, company.email].filter(Boolean).join(" · ")}
-          </p>
-        </div>
-        <div className="text-right">
-          <p className="section-label">AMC Offer</p>
-          <p>{offer.offerNo}</p>
-          <p className="cell-sub">Date: {offer.offerDate}</p>
-          {offer.validUntil && <p className="cell-sub">Valid until: {offer.validUntil}</p>}
-        </div>
+      <div className="offer-letterhead">
+        <h2 className="offer-company">{company.name}</h2>
+        <p className="offer-doc-title">ANNUAL MAINTENANCE CONTRACT OFFER</p>
+        {company.address && <p className="offer-company-address">{company.address}</p>}
       </div>
 
-      <div className="form-grid cols-2">
+      <div className="offer-meta">
         <div>
-          <p className="section-label">To</p>
-          <p className="cell-strong">{offer.customerName}</p>
+          <p className="offer-meta-label">To</p>
+          <p className="offer-meta-strong">{offer.customerName}</p>
           {offer.customerAddress && <p>{offer.customerAddress}</p>}
-          {offer.scope && <p className="cell-sub">For: {offer.scope}</p>}
         </div>
-        {(offer.periodStart || offer.periodEnd) && (
-          <div className="text-right">
-            <p className="section-label">AMC period</p>
+        <div>
+          <p>
+            <span className="offer-meta-label">AMC offer No:</span> {offer.offerNo}
+          </p>
+          <p>
+            <span className="offer-meta-label">Date:</span> {offer.offerDate}
+          </p>
+          {offer.siteAddress && (
             <p>
-              {offer.periodStart ?? "—"} to {offer.periodEnd ?? "—"}
+              <span className="offer-meta-label">Site Address:</span> {offer.siteAddress}
             </p>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
-      <table>
+      <p className="offer-intro">
+        Dear Sir,
+        <br />
+        {company.introText}
+      </p>
+
+      <table className="offer-items">
         <thead>
           <tr>
-            <th className="field-label">#</th>
-            <th className="field-label">Description</th>
-            <th className="field-label">HP</th>
-            <th className="field-label">Qty</th>
-            <th className="numeric field-label">Rate</th>
-            <th className="numeric field-label">Amount</th>
+            <th>Description</th>
+            <th className="numeric">HP</th>
+            <th className="numeric">Rate/HP</th>
+            <th className="numeric">Grand Total</th>
           </tr>
         </thead>
         <tbody>
-          {items.map((item) => (
-            <tr key={item.sequence}>
-              <td className="muted">{item.sequence}</td>
-              <td>{item.description}</td>
-              <td>{item.hp ?? "—"}</td>
-              <td>{item.quantity}</td>
-              <td className="numeric">{formatCurrency(item.unitRate)}</td>
-              <td className="numeric">
-                {formatCurrency(item.quantity * item.unitRate)}
+          {offer.systemHeading && (
+            <tr>
+              <td colSpan={4} className="offer-system-heading">
+                {offer.systemHeading}
               </td>
             </tr>
+          )}
+          {offer.amcPeriodText && (
+            <tr>
+              <td colSpan={4} className="offer-period-label">
+                AMC Period: {offer.amcPeriodText}
+              </td>
+            </tr>
+          )}
+          {items.map((item) => (
+            <tr key={item.sequence}>
+              <td>{item.description}</td>
+              <td className="numeric">{item.hp ?? "—"}</td>
+              <td className="numeric">{formatCurrency(item.unitRate)}</td>
+              <td className="numeric">{formatCurrency(lineAmount(item))}</td>
+            </tr>
           ))}
+          {offer.hsnCode && (
+            <tr>
+              <td colSpan={4} className="offer-hsn">
+                HSN/SAC CODE - {offer.hsnCode}
+              </td>
+            </tr>
+          )}
+          <tr>
+            <td colSpan={3} className="numeric">
+              Sub Total
+            </td>
+            <td className="numeric">{formatCurrency(totals.subtotal)}</td>
+          </tr>
+          <tr>
+            <td colSpan={3} className="numeric">
+              GST RATE {offer.taxPercent}%
+            </td>
+            <td className="numeric">{formatCurrency(totals.tax)}</td>
+          </tr>
+          <tr className="offer-net">
+            <td colSpan={3} className="numeric">
+              Net Amount
+            </td>
+            <td className="numeric">{formatCurrency(totals.total)}</td>
+          </tr>
         </tbody>
       </table>
 
-      <div className="offer-totals">
-        <dl>
-          <div className="row">
-            <dt className="muted">Subtotal</dt>
-            <dd>{formatCurrency(totals.subtotal)}</dd>
-          </div>
-          <div className="row">
-            <dt className="muted">Tax ({offer.taxPercent}%)</dt>
-            <dd>{formatCurrency(totals.tax)}</dd>
-          </div>
-          <div className="row total">
-            <dt>Total</dt>
-            <dd>{formatCurrency(totals.total)}</dd>
-          </div>
-        </dl>
+      <p className="offer-words">
+        <span className="offer-meta-label">Total Amount In Word:</span>{" "}
+        {amountInWords(totals.total)}
+      </p>
+
+      <div className="offer-blocks">
+        <div>
+          <p className="offer-meta-label">Company Details</p>
+          {offer.amcPeriodText && <p>Contract Period: {offer.amcPeriodText}</p>}
+          {offer.contractTerm && <p>{offer.contractTerm}</p>}
+
+          <p className="offer-meta-label offer-payment-label">PAYMENT</p>
+          <table className="offer-payment">
+            <tbody>
+              {["Cheque / DD No.", "Cheque / DD Date", "Cheque / DD Amount", "TDS Deduction", "TIN/VAT No."].map(
+                (label) => (
+                  <tr key={label}>
+                    <td>{label}</td>
+                    <td className="offer-payment-blank" />
+                  </tr>
+                )
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="offer-signoff">
+          <p>FOR,</p>
+          <p className="offer-meta-strong">{company.name}</p>
+          <p>{company.signatory}</p>
+          <p>{company.cityLine}</p>
+          <p>{company.stateLine}</p>
+          {company.phone && <p>Ph: {company.phone}</p>}
+          {company.email && <p>{company.email}</p>}
+          <p className="offer-signature-line">(Customer&apos;s Signature with stamp)</p>
+        </div>
       </div>
 
       {offer.notes && (
-        <div>
-          <p className="section-label">Notes</p>
-          <p className="whitespace-preserve">{offer.notes}</p>
-        </div>
+        <p className="whitespace-preserve offer-note">
+          <span className="offer-meta-label">Notes:</span> {offer.notes}
+        </p>
       )}
-      {offer.termsText && (
-        <div>
-          <p className="section-label">Terms &amp; conditions</p>
-          <p className="whitespace-preserve">{offer.termsText}</p>
-        </div>
-      )}
+      {offer.termsText && <p className="whitespace-preserve offer-note">{offer.termsText}</p>}
 
-      <div className="offer-signature">
-        <p className="cell-sub">Prepared by {offer.preparedBy}</p>
-        <div className="text-right">
-          <div className="h-10" />
-          <p className="offer-signature-line">For {company.name}</p>
-        </div>
-      </div>
+      <p className="offer-footer-note">{company.footerNote}</p>
 
-      <div className="no-print">
-        <button
-          onClick={() => window.print()}
-         
-        >
+      <div className="no-print offer-print-actions">
+        <button className="primary" onClick={() => window.print()}>
           Print / Save as PDF
         </button>
       </div>

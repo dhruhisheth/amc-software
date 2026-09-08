@@ -5,7 +5,7 @@ import { requireView } from "@/lib/auth/guards";
 import { canDelete, canEdit } from "@/lib/auth/permissions";
 import { formatCalendarDate, toDateInputValue } from "@/lib/date";
 import { computeOfferTotals, formatCurrency } from "@/lib/offer";
-import { unitLabel } from "@/lib/units";
+import { formatAmcPeriodText, unitLabel } from "@/lib/units";
 import { OfferStatusBadge } from "@/components/Badges";
 import { OfferForm, DeleteOfferButton } from "../OfferForms";
 import OfferPrintView from "./OfferPrintView";
@@ -67,26 +67,30 @@ export default async function OfferPage({ params }: { params: Promise<{ offerId:
           address: appSettings.companyAddress,
           phone: appSettings.companyPhone,
           email: appSettings.companyEmail,
+          signatory: appSettings.offerSignatory,
+          cityLine: appSettings.offerCityLine,
+          stateLine: appSettings.offerStateLine,
+          introText: appSettings.offerIntroText,
+          footerNote: appSettings.offerFooterNote,
         }}
         offer={{
           offerNo: offer.offerNo,
-          offerDate: formatCalendarDate(offer.offerDate) ?? "",
-          validUntil: formatCalendarDate(offer.validUntil),
-          periodStart: formatCalendarDate(offer.periodStart),
-          periodEnd: formatCalendarDate(offer.periodEnd),
+          offerDate: formatCalendarDate(offer.offerDate, "DD.MM.YYYY") ?? "",
           customerName: offer.customerName,
           customerAddress: offer.customerAddress,
-          scope: offer.unit ? unitLabel(offer.unit) : (offer.project?.name ?? null),
+          siteAddress: offer.siteAddress,
+          systemHeading: offer.systemHeading,
+          hsnCode: offer.hsnCode,
+          contractTerm: offer.contractTerm,
+          amcPeriodText: formatAmcPeriodText(offer.periodStart, offer.periodEnd),
+          taxPercent: offer.taxPercent,
           notes: offer.notes,
           termsText: offer.termsText,
-          taxPercent: offer.taxPercent,
-          preparedBy: offer.createdBy.name,
         }}
         items={offer.items.map((item) => ({
           sequence: item.sequence,
           description: item.description,
           hp: item.hp,
-          quantity: item.quantity,
           unitRate: item.unitRate,
         }))}
         totals={totals}
@@ -105,6 +109,10 @@ export default async function OfferPage({ params }: { params: Promise<{ offerId:
               unitId: offer.unitId ?? "",
               customerName: offer.customerName,
               customerAddress: offer.customerAddress ?? "",
+              siteAddress: offer.siteAddress ?? "",
+              systemHeading: offer.systemHeading ?? "",
+              hsnCode: offer.hsnCode ?? "",
+              contractTerm: offer.contractTerm ?? "",
               offerDate: toDateInputValue(offer.offerDate),
               validUntil: toDateInputValue(offer.validUntil),
               periodStart: toDateInputValue(offer.periodStart),
@@ -116,7 +124,6 @@ export default async function OfferPage({ params }: { params: Promise<{ offerId:
               items: offer.items.map((item) => ({
                 description: item.description,
                 hp: item.hp !== null ? String(item.hp) : "",
-                quantity: String(item.quantity),
                 unitRate: String(item.unitRate),
               })),
             }}

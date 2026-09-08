@@ -35,27 +35,37 @@ export default async function ComplaintsPage({
         ...(COMPLAINT_STATUSES.includes(statusFilter as ComplaintStatus)
           ? { status: statusFilter as ComplaintStatus }
           : {}),
+        // A technician "has" a complaint whichever of the two slots they are in.
         ...(technicianFilter === "unassigned"
-          ? { technicianId: null }
+          ? { technicianId: null, technician2Id: null }
           : technicianFilter
-            ? { technicianId: technicianFilter }
+            ? { OR: [{ technicianId: technicianFilter }, { technician2Id: technicianFilter }] }
             : {}),
       },
       orderBy: [{ status: "asc" }, { reportedAt: "desc" }],
-      include: { project: true, unit: true, technician: true },
+      include: { project: true, unit: true, technician: true, technician2: true },
     }),
     prisma.technician.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
   ]);
 
   const rows = search
     ? complaints.filter((c) =>
-        [c.ticketNo, c.subject, c.complainantName, c.project?.name, c.technician?.name]
+        [
+          c.ticketNo,
+          c.subject,
+          c.complainantName,
+          c.project?.name,
+          c.technician?.name,
+          c.technician2?.name,
+        ]
           .some((field) => (field ?? "").toLowerCase().includes(search.toLowerCase()))
       )
     : complaints;
 
   const openCount = rows.filter((c) => isOpenComplaint(c.status)).length;
-  const unassignedCount = rows.filter((c) => !c.technicianId && isOpenComplaint(c.status)).length;
+  const unassignedCount = rows.filter(
+    (c) => !c.technicianId && !c.technician2Id && isOpenComplaint(c.status)
+  ).length;
 
   return (
     <div className="app-content">
@@ -143,7 +153,7 @@ export default async function ComplaintsPage({
               <th>Project / Flat</th>
               <th>Reported</th>
               <th>Priority</th>
-              <th>Technician attending</th>
+              <th>Technicians attending</th>
               <th>Status</th>
               <th></th>
             </tr>
@@ -170,6 +180,7 @@ export default async function ComplaintsPage({
                   <AssignTechnicianSelect
                     complaintId={c.id}
                     technicianId={c.technicianId}
+                    technician2Id={c.technician2Id}
                     technicians={technicians.map((t) => ({ id: t.id, name: t.name }))}
                     disabled={!editable}
                   />

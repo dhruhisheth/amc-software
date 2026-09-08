@@ -274,11 +274,13 @@ export function ComplaintForm({
 export function AssignTechnicianSelect({
   complaintId,
   technicianId,
+  technician2Id,
   technicians,
   disabled,
 }: {
   complaintId: string;
   technicianId: string | null;
+  technician2Id: string | null;
   technicians: TechnicianOption[];
   disabled: boolean;
 }) {
@@ -286,11 +288,11 @@ export function AssignTechnicianSelect({
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  function handleChange(next: string) {
+  function handleChange(next: string, slot: 1 | 2) {
     setError(null);
     start(async () => {
       try {
-        await assignTechnician(complaintId, next);
+        await assignTechnician(complaintId, next, slot);
         router.refresh();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to assign.");
@@ -298,23 +300,34 @@ export function AssignTechnicianSelect({
     });
   }
 
+  // Two technicians attend, so the list offers both slots. Each select hides whoever is already
+  // in the other slot, so the same person cannot be picked twice.
   return (
-    <>
-      <select
-        value={technicianId ?? ""}
-        disabled={disabled || pending}
-        onChange={(e) => handleChange(e.target.value)}
-       
-      >
-        <option value="">— Unassigned —</option>
-        {technicians.map((t) => (
-          <option key={t.id} value={t.id}>
-            {t.name}
-          </option>
-        ))}
-      </select>
+    <div className="assign-slots">
+      {([1, 2] as const).map((slot) => {
+        const current = slot === 1 ? technicianId : technician2Id;
+        const other = slot === 1 ? technician2Id : technicianId;
+        return (
+          <select
+            key={slot}
+            value={current ?? ""}
+            disabled={disabled || pending}
+            onChange={(e) => handleChange(e.target.value, slot)}
+            aria-label={slot === 1 ? "Lead technician" : "Second technician"}
+          >
+            <option value="">{slot === 1 ? "— Unassigned —" : "— No second —"}</option>
+            {technicians
+              .filter((t) => t.id !== other)
+              .map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+          </select>
+        );
+      })}
       {error && <div className="error-text">{error}</div>}
-    </>
+    </div>
   );
 }
 
