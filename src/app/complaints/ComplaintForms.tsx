@@ -174,19 +174,36 @@ export function ComplaintForm({
         <div>
           <SectionHeading>Attending</SectionHeading>
           <div className="form-grid cols-3">
-            <Field label="Technician attending" hint="Who is handling this complaint.">
+            <Field label="Technician attending (1)" hint="Two technicians attend every complaint.">
               <select
                 disabled={readOnly}
                 value={form.technicianId}
                 onChange={(e) => set("technicianId", e.target.value)}
-               
               >
                 <option value="">— Unassigned —</option>
-                {technicians.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
-                  </option>
-                ))}
+                {technicians
+                  .filter((t) => t.id !== form.technician2Id)
+                  .map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+              </select>
+            </Field>
+            <Field label="Technician attending (2)" hint="The second technician on the job.">
+              <select
+                disabled={readOnly}
+                value={form.technician2Id}
+                onChange={(e) => set("technician2Id", e.target.value)}
+              >
+                <option value="">— Unassigned —</option>
+                {technicians
+                  .filter((t) => t.id !== form.technicianId)
+                  .map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
               </select>
             </Field>
             <Field label="Priority">
