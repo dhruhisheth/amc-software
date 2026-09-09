@@ -113,7 +113,15 @@ export function OfferForm({
                   disabled={readOnly}
                   value={form.customerAddress}
                   onChange={(e) => set("customerAddress", e.target.value)}
-                 
+                />
+              </Field>
+            </div>
+            <div className="span-all">
+              <Field label="Site address" hint="Printed on the offer as the site the AMC covers.">
+                <input
+                  disabled={readOnly}
+                  value={form.siteAddress}
+                  onChange={(e) => set("siteAddress", e.target.value)}
                 />
               </Field>
             </div>
@@ -173,14 +181,37 @@ export function OfferForm({
                
               />
             </Field>
-            <Field label="Tax %">
+            <Field label="GST rate %">
               <input
                 type="number"
                 step="0.01"
                 disabled={readOnly}
                 value={form.taxPercent}
                 onChange={(e) => set("taxPercent", e.target.value)}
-               
+              />
+            </Field>
+            <Field
+              label="Equipment heading"
+              hint={'Printed above the lines, e.g. "LG MAKE VRF SYSTEMS".'}
+            >
+              <input
+                disabled={readOnly}
+                value={form.systemHeading}
+                onChange={(e) => set("systemHeading", e.target.value)}
+              />
+            </Field>
+            <Field label="HSN / SAC code">
+              <input
+                disabled={readOnly}
+                value={form.hsnCode}
+                onChange={(e) => set("hsnCode", e.target.value)}
+              />
+            </Field>
+            <Field label="Contract period terms">
+              <input
+                disabled={readOnly}
+                value={form.contractTerm}
+                onChange={(e) => set("contractTerm", e.target.value)}
               />
             </Field>
           </div>
