@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireView } from "@/lib/auth/guards";
 import { formatCalendarDate } from "@/lib/date";
 import { summarizeServiceHistory } from "@/lib/serviceHistory";
+import { computeAlerts } from "@/lib/alerts";
 import { unitLabel } from "@/lib/units";
 import { Badge, VisitStatusBadge } from "@/components/Badges";
 import type { VisitStatus } from "@/generated/prisma/enums";
@@ -30,7 +31,7 @@ export default async function HistoryPage({
   const statusFilter = param(sp, "status");
   const technicianFilter = param(sp, "technician");
 
-  const [projects, technicians, units, reminders] = await Promise.all([
+  const [projects, technicians, units, alerts] = await Promise.all([
     prisma.project.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.technician.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.unit.findMany({
@@ -41,13 +42,15 @@ export default async function HistoryPage({
         visits: { orderBy: { sequence: "asc" }, include: { technician: true } },
       },
     }),
-    prisma.reminder.findMany({
-      where: projectFilter ? { unit: { projectId: projectFilter } } : {},
-      orderBy: { dueDate: "asc" },
-      take: 50,
-      include: { unit: { include: { project: { select: { name: true } } } } },
-    }),
+    computeAlerts(),
   ]);
+
+  // The banner shows only the next few; this is the full list, narrowed by the project filter.
+  const alertRows = [...alerts.serviceDue.map((a) => ({ ...a, kind: "Service" as const })),
+    ...alerts.renewalDue.map((a) => ({ ...a, kind: "Renewal" as const })),
+  ]
+    .filter((a) => !projectFilter || a.projectId === projectFilter)
+    .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
 
   const now = new Date();
 
@@ -145,7 +148,9 @@ export default async function HistoryPage({
         </button>
       </form>
 
-      <span className="section-label">Reminders ({reminders.length})</span>
+      <span className="section-label">
+        Due now ({alertRows.length}) — within {alerts.leadDays} days
+      </span>
       <div className="table-wrap">
         <table>
           <thead>
@@ -154,43 +159,35 @@ export default async function HistoryPage({
               <th>What</th>
               <th>Flat</th>
               <th>Project</th>
-              <th>Status</th>
-              <th>Detail</th>
+              <th>When</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
-            {reminders.map((reminder) => (
-              <tr key={reminder.id}>
-                <td>{formatCalendarDate(reminder.dueDate)}</td>
-                <td>{reminder.kind === "SERVICE_DUE" ? "Service" : "Renewal"}</td>
-                <td>{unitLabel(reminder.unit)}</td>
-                <td className="muted">{reminder.unit.project.name}</td>
+            {alertRows.map((alert) => (
+              <tr key={`${alert.kind}-${alert.unitId}-${alert.dueDate.toISOString()}`}>
+                <td>{formatCalendarDate(alert.dueDate)}</td>
+                <td>{alert.kind}</td>
+                <td>{alert.label}</td>
+                <td className="muted">{alert.projectName}</td>
                 <td>
-                  <Badge
-                    tone={
-                      reminder.status === "SENT"
-                        ? "success"
-                        : reminder.status === "FAILED"
-                          ? "danger"
-                          : reminder.status === "SKIPPED"
-                            ? "warning"
-                            : "neutral"
-                    }
-                  >
-                    {reminder.status}
+                  <Badge tone={alert.overdue ? "danger" : "warning"}>
+                    {alert.overdue
+                      ? `${Math.abs(alert.daysUntil)} days overdue`
+                      : alert.daysUntil === 0
+                        ? "Today"
+                        : `In ${alert.daysUntil} days`}
                   </Badge>
                 </td>
-                <td className="cell-sub">
-                  {reminder.sentAt
-                    ? `Sent ${formatCalendarDate(reminder.sentAt)} via ${reminder.channel ?? "—"}`
-                    : (reminder.error ?? "Waiting to send")}
+                <td className="numeric">
+                  <Link href={`/projects/${alert.projectId}/units/${alert.unitId}`}>Open</Link>
                 </td>
               </tr>
             ))}
-            {reminders.length === 0 && (
+            {alertRows.length === 0 && (
               <tr>
                 <td colSpan={6} className="empty-state">
-                  Nothing due inside the reminder window yet.
+                  Nothing due inside the alert window.
                 </td>
               </tr>
             )}

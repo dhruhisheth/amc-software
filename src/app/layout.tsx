@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import SessionProvider from "@/components/SessionProvider";
 import NavBar from "@/components/NavBar";
+import AlertBanner from "@/components/AlertBanner";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -25,6 +26,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <SessionProvider>
           <div className="app-shell">
             <NavBar />
+            <AlertBanner />
             {children}
           </div>
         </SessionProvider>

@@ -88,13 +88,20 @@ export default async function Home() {
         {/* Service and renewal are counted separately on purpose — two different due dates. */}
         <div className="stat-tiles six">
         <StatCard label="Total flats" value={units.length} href="/projects" />
-        <StatCard label="Service overdue" value={overdue} tone="danger" href="/history" />
+        <StatCard
+          label="Service overdue"
+          value={overdue}
+          tone="danger"
+          href="/history"
+          note="all time"
+        />
         <StatCard label="Service due soon" value={dueSoon} tone="warning" href="/history" />
         <StatCard
           label="Renewals due"
           value={renewalExpired + renewalExpiringSoon}
           tone="warning"
           href="/projects"
+          note="all time"
         />
         <StatCard label="Services pending" value={pendingVisits} tone="warning" href="/history" />
         <StatCard

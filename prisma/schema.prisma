@@ -69,10 +69,8 @@ model AppSettings {
   offerContractTerm String @default("One year from the date of PO and Payment")
   offerFooterNote   String @default("Please note that all machines will be checked & repaired on chargeable basis before taking this into AMC.")
 
-  // Where service and renewal reminders are sent. Both are optional; a blank channel is skipped.
-  reminderEmail    String @default("")
-  reminderPhone    String @default("+919099177770")
-  reminderLeadDays Int    @default(14)
+  // How far ahead the in-app alert starts warning about a service or renewal falling due.
+  reminderLeadDays Int @default(14)
 }
 
 model Project {
@@ -129,7 +127,6 @@ model Unit {
   visits                 ServiceVisit[]
   complaints             Complaint[]
   amcOffers              AmcOffer[]
-  reminders              Reminder[]
 
   @@index([projectId])
   @@index([nextServiceDueDate])
@@ -281,42 +278,6 @@ model AmcOfferItem {
   unitRate    Float    @default(0)
 
   @@index([offerId])
-}
-
-enum ReminderKind {
-  SERVICE_DUE
-  RENEWAL_DUE
-}
-
-enum ReminderStatus {
-  PENDING
-  SENT
-  FAILED
-  SKIPPED
-}
-
-/**
- * One reminder that a flat's service or renewal is coming up.
- * Rows are created by the scheduler rather than by hand, and the unique key on
- * (unitId, kind, dueDate) is what stops the same reminder being raised — or sent — twice when
- * the scheduler runs repeatedly.
- */
-model Reminder {
-  id        String         @id @default(cuid())
-  unitId    String
-  unit      Unit           @relation(fields: [unitId], references: [id], onDelete: Cascade)
-  kind      ReminderKind
-  dueDate   DateTime
-  status    ReminderStatus @default(PENDING)
-  channel   String?
-  sentAt    DateTime?
-  error     String?
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
-
-  @@unique([unitId, kind, dueDate])
-  @@index([status])
-  @@index([dueDate])
 }
 
 model UploadLog {

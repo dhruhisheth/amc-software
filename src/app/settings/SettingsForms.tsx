@@ -9,10 +9,9 @@ import {
   updateUserRole,
   deleteUser,
   updateCompanySettings,
-  updateReminderSettings,
-  runRemindersNow,
+  updateAlertSettings,
   type CompanySettingsInput,
-  type ReminderSettingsInput,
+  type AlertSettingsInput,
 } from "./actions";
 import { Field } from "@/components/form";
 import { ROLES, ROLE_DESCRIPTIONS, ROLE_LABELS, type Role } from "@/lib/auth/permissions";
@@ -445,33 +444,18 @@ export function CompanySettingsForm({ initial }: { initial: CompanySettingsInput
   );
 }
 
-export function ReminderSettingsForm({
-  initial,
-  emailReady,
-  smsReady,
-}: {
-  initial: ReminderSettingsInput;
-  emailReady: boolean;
-  smsReady: boolean;
-}) {
+export function AlertSettingsForm({ initial }: { initial: AlertSettingsInput }) {
   const router = useRouter();
-  const [form, setForm] = useState<ReminderSettingsInput>(initial);
+  const [form, setForm] = useState<AlertSettingsInput>(initial);
   const [pending, startTransition] = useTransition();
-  const [running, startRun] = useTransition();
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [runSummary, setRunSummary] = useState<string | null>(null);
-
-  function set<K extends keyof ReminderSettingsInput>(key: K, value: ReminderSettingsInput[K]) {
-    setForm((f) => ({ ...f, [key]: value }));
-    setSaved(false);
-  }
 
   function handleSave() {
     setError(null);
     startTransition(async () => {
       try {
-        await updateReminderSettings(form);
+        await updateAlertSettings(form);
         setSaved(true);
         router.refresh();
       } catch (err) {
@@ -480,83 +464,35 @@ export function ReminderSettingsForm({
     });
   }
 
-  function handleRunNow() {
-    setError(null);
-    setRunSummary(null);
-    startRun(async () => {
-      try {
-        const r = await runRemindersNow();
-        setRunSummary(
-          `Raised ${r.raised}, sent ${r.sent}, skipped ${r.skipped}, failed ${r.failed}.` +
-            (r.messages.length > 0 ? ` ${r.messages[0]}` : "")
-        );
-        router.refresh();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Reminder run failed.");
-      }
-    });
-  }
-
   return (
     <div className="card">
-      <h3>Service &amp; renewal reminders</h3>
+      <h3>Service &amp; renewal alerts</h3>
       <p>
         Four services a year are scheduled from each flat&apos;s AMC start date, one every three
-        months. A reminder is raised {form.reminderLeadDays || 0} days before each service and
-        before each contract renewal, and sent to the addresses below once a day.
+        months. Anything falling due within the window below is shown as an alert at the top of
+        every page, and listed in full under Service History. Something already missed keeps
+        alerting for 30 days, so a long-lapsed contract doesn&apos;t bury the ones that matter.
       </p>
 
       <div className="form-grid cols-3">
-        <Field label="Reminder email">
-          <input
-            type="email"
-            value={form.reminderEmail}
-            onChange={(e) => set("reminderEmail", e.target.value)}
-            placeholder="(none)"
-          />
-        </Field>
-        <Field label="Reminder phone">
-          <input
-            value={form.reminderPhone}
-            onChange={(e) => set("reminderPhone", e.target.value)}
-            placeholder="+91..."
-          />
-        </Field>
-        <Field label="Days ahead">
+        <Field label="Alert this many days ahead">
           <input
             type="number"
             min="0"
             value={form.reminderLeadDays}
-            onChange={(e) => set("reminderLeadDays", e.target.value)}
+            onChange={(e) => {
+              setForm({ reminderLeadDays: e.target.value });
+              setSaved(false);
+            }}
           />
         </Field>
       </div>
-
-      <div className="reminder-status">
-        <span className={emailReady ? "badge success" : "badge warning"}>
-          Email {emailReady ? "ready" : "not configured"}
-        </span>
-        <span className={smsReady ? "badge success" : "badge warning"}>
-          SMS {smsReady ? "ready" : "not configured"}
-        </span>
-      </div>
-      {(!emailReady || !smsReady) && (
-        <p className="field-hint">
-          Reminders are still raised and listed under Service History whatever is configured. To
-          have them actually delivered, set RESEND_API_KEY and REMINDER_FROM_EMAIL for email, or
-          TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_FROM_NUMBER for SMS.
-        </p>
-      )}
 
       <div className="form-actions">
         <button onClick={handleSave} disabled={pending} className="primary">
           {pending ? "Saving..." : "Save"}
         </button>
-        <button onClick={handleRunNow} disabled={running}>
-          {running ? "Running..." : "Run reminders now"}
-        </button>
         {saved && <span className="success-text">Saved.</span>}
-        {runSummary && <span className="muted">{runSummary}</span>}
         {error && <span className="error-text">{error}</span>}
       </div>
     </div>

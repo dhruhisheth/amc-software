@@ -941,3 +941,71 @@ a.card.project-card:hover {
   flex-wrap: wrap;
   gap: 8px;
 }
+
+/* Standing alert for services and renewals falling due. Shown on every page while signed in. */
+.alert-banner {
+  width: 100%;
+  max-width: 1120px;
+  margin: 16px auto 0;
+  padding: 12px 14px;
+  border: 1px solid var(--warning);
+  background: var(--warning-bg);
+  color: var(--warning);
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+.alert-banner.danger {
+  border-color: var(--danger);
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.alert-banner-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.alert-banner-sub {
+  opacity: 0.85;
+}
+
+.alert-banner-link {
+  margin-left: auto;
+  color: inherit;
+  font-weight: 600;
+}
+
+.alert-banner-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.alert-banner-list li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.alert-banner-list a {
+  color: inherit;
+  font-weight: 600;
+}
+
+.alert-when {
+  opacity: 0.85;
+}
+
+.alert-when.overdue {
+  font-weight: 600;
+}
+
+.alert-banner-more {
+  opacity: 0.8;
+}

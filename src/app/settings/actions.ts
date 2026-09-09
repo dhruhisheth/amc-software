@@ -7,7 +7,6 @@ import { requireAdmin } from "@/lib/auth/guards";
 import type { Role } from "@/lib/auth/permissions";
 import { isRootAdminEmail, normalizeEmail } from "@/lib/auth/root-admin";
 import { addCalendarDays } from "@/lib/date";
-import { runReminders } from "@/lib/reminders";
 import { Prisma } from "@/generated/prisma/client";
 
 export async function updateAppSettings(defaultServiceIntervalDays: number, renewalAlertLeadDays: number): Promise<void> {
@@ -180,14 +179,12 @@ export async function deleteUser(userId: string): Promise<void> {
   revalidatePath("/settings");
 }
 
-export interface ReminderSettingsInput {
-  reminderEmail: string;
-  reminderPhone: string;
+export interface AlertSettingsInput {
   reminderLeadDays: string;
 }
 
-/** Where service and renewal reminders go, and how far ahead they are raised. */
-export async function updateReminderSettings(input: ReminderSettingsInput): Promise<void> {
+/** How far ahead the in-app alert warns about a service or renewal falling due. */
+export async function updateAlertSettings(input: AlertSettingsInput): Promise<void> {
   await requireAdmin();
 
   const leadDays = Number(input.reminderLeadDays);
@@ -195,30 +192,11 @@ export async function updateReminderSettings(input: ReminderSettingsInput): Prom
   await prisma.appSettings.update({
     where: { id: 1 },
     data: {
-      reminderEmail: input.reminderEmail.trim(),
-      reminderPhone: input.reminderPhone.trim(),
       reminderLeadDays: Number.isFinite(leadDays) && leadDays >= 0 ? Math.round(leadDays) : 14,
     },
   });
 
   revalidatePath("/settings");
   revalidatePath("/history");
-}
-
-/**
- * Raise and deliver reminders immediately, rather than waiting for the nightly cron. Useful for
- * checking that email/SMS credentials actually work.
- */
-export async function runRemindersNow(): Promise<{
-  raised: number;
-  sent: number;
-  skipped: number;
-  failed: number;
-  messages: string[];
-}> {
-  await requireAdmin();
-  const result = await runReminders();
-  revalidatePath("/settings");
-  revalidatePath("/history");
-  return result;
+  revalidatePath("/");
 }

@@ -2,7 +2,6 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth/guards";
 import { ROLE_DESCRIPTIONS, ROLE_LABELS, ROLES } from "@/lib/auth/permissions";
 import { isRootAdminEmail } from "@/lib/auth/root-admin";
-import { emailConfigured, smsConfigured } from "@/lib/notify";
 import {
   IntervalSettingsForm,
   ProjectIntervalRow,
@@ -10,7 +9,7 @@ import {
   UserRoleToggle,
   DeleteUserButton,
   CompanySettingsForm,
-  ReminderSettingsForm,
+  AlertSettingsForm,
 } from "./SettingsForms";
 
 export default async function SettingsPage() {
@@ -52,15 +51,7 @@ export default async function SettingsPage() {
         }}
       />
 
-      <ReminderSettingsForm
-        emailReady={emailConfigured()}
-        smsReady={smsConfigured()}
-        initial={{
-          reminderEmail: appSettings.reminderEmail,
-          reminderPhone: appSettings.reminderPhone,
-          reminderLeadDays: String(appSettings.reminderLeadDays),
-        }}
-      />
+      <AlertSettingsForm initial={{ reminderLeadDays: String(appSettings.reminderLeadDays) }} />
 
       <div className="card">
         <h2>Per-project interval overrides</h2>
